@@ -1,112 +1,78 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let ctx: CanvasRenderingContext2D | null = null
-let animationFrameId: number
-let particles: Particle[] = []
-let mouse = { x: 0, y: 0 }
-
-class Particle {
-  x: number
-  y: number
-  size: number
-  speedX: number
-  speedY: number
-  color: string
-
-  constructor(w: number, h: number) {
-    this.x = Math.random() * w
-    this.y = Math.random() * h
-    this.size = Math.random() * 2 + 0.5
-    this.speedX = Math.random() * 1 - 0.5
-    this.speedY = Math.random() * 1 - 0.5
-    // 随机选择青色或紫色
-    this.color = Math.random() > 0.5 ? 'rgba(0, 243, 255, 0.5)' : 'rgba(188, 19, 254, 0.5)'
-  }
-
-  update(w: number, h: number) {
-    this.x += this.speedX
-    this.y += this.speedY
-
-    if (this.x > w) this.x = 0
-    else if (this.x < 0) this.x = w
-    if (this.y > h) this.y = 0
-    else if (this.y < 0) this.y = h
-  }
-
-  draw() {
-    if (!ctx) return
-    ctx.fillStyle = this.color
-    ctx.beginPath()
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-    ctx.fill()
-  }
-}
-
-const init = () => {
-  if (!canvasRef.value) return
-  ctx = canvasRef.value.getContext('2d')
-  if (!ctx) return
-
-  canvasRef.value.width = window.innerWidth
-  canvasRef.value.height = window.innerHeight
-
-  particles = []
-  const particleCount = Math.min(100, (window.innerWidth * window.innerHeight) / 9000)
-  for (let i = 0; i < particleCount; i++) {
-    particles.push(new Particle(canvasRef.value.width, canvasRef.value.height))
-  }
-}
-
-const animate = () => {
-  if (!canvasRef.value || !ctx) return
-  ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
-  
-  // Update and draw particles
-  for (let i = 0; i < particles.length; i++) {
-    particles[i].update(canvasRef.value.width, canvasRef.value.height)
-    particles[i].draw()
-
-    // Draw connections
-    for (let j = i; j < particles.length; j++) {
-      const dx = particles[i].x - particles[j].x
-      const dy = particles[i].y - particles[j].y
-      const distance = Math.sqrt(dx * dx + dy * dy)
-
-      if (distance < 150) {
-        ctx.beginPath()
-        ctx.strokeStyle = `rgba(100, 116, 139, ${0.1 - distance/1500})`
-        ctx.lineWidth = 1
-        ctx.moveTo(particles[i].x, particles[i].y)
-        ctx.lineTo(particles[j].x, particles[j].y)
-        ctx.stroke()
-      }
-    }
-  }
-
-  animationFrameId = requestAnimationFrame(animate)
-}
-
-const handleResize = () => {
-  init()
-}
-
-onMounted(() => {
-  init()
-  animate()
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  cancelAnimationFrame(animationFrameId)
-})
+// 纯 CSS 实现的赛博朋克网格背景 + 漂浮粒子
 </script>
 
 <template>
-  <canvas 
-    ref="canvasRef" 
-    class="fixed top-0 left-0 w-full h-full pointer-events-none z-0 opacity-60"
-  ></canvas>
+  <div class="cyber-bg fixed inset-0 z-0 overflow-hidden pointer-events-none bg-slate-950">
+    <!-- Grid Plane -->
+    <div class="grid-plane"></div>
+    
+    <!-- Horizon Glow -->
+    <div class="horizon-glow"></div>
+    
+    <!-- Optional: Vignette -->
+    <div class="vignette"></div>
+  </div>
 </template>
+
+<style scoped>
+.cyber-bg {
+  perspective: 1000px;
+}
+
+/* 3D Moving Grid */
+.grid-plane {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  left: -50%;
+  top: -25%; /* Adjust to lower the horizon */
+  background-image: 
+    linear-gradient(rgba(0, 255, 157, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 157, 0.15) 1px, transparent 1px);
+  background-size: 80px 80px;
+  transform: rotateX(75deg);
+  animation: moveGrid 5s linear infinite;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+
+/* Horizon Light */
+.horizon-glow {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+  filter: blur(60px);
+  opacity: 0.8;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, rgba(2, 6, 23, 0.8) 100%);
+  pointer-events: none;
+}
+
+@keyframes moveGrid {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 80px; }
+}
+
+/* Scanline Effect */
+.cyber-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.2) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.5;
+}
+</style>
