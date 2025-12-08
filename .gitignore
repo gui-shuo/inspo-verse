@@ -1,0 +1,208 @@
+# ===========================================
+# AI健康饮食规划助手 - Git忽略文件
+# ===========================================
+
+# ============================================
+# IDE相关
+# ============================================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Eclipse
+.classpath
+.project
+.settings/
+*.launch
+
+# NetBeans
+nbproject/
+nbbuild/
+dist/
+nbdist/
+
+# ============================================
+# 前端相关 (frontend/)
+# ============================================
+# 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# 构建产物
+dist/
+dist-ssr/
+build/
+.nuxt/
+.next/
+.cache/
+
+# 环境变量（保留模板）
+.env.local
+.env.*.local
+
+# 测试覆盖率
+coverage/
+*.lcov
+.nyc_output/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 前端自动生成文件
+src/auto-imports.d.ts
+src/components.d.ts
+.eslintrc-auto-import.json
+
+# ============================================
+# 后端相关 (backend/)
+# ============================================
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Spring Boot
+spring-boot-*.log
+*.log
+
+# ============================================
+# 日志文件
+# ============================================
+logs/
+log/
+*.log
+*.log.*
+*.out
+*.pid
+
+# ============================================
+# 数据库相关
+# ============================================
+# 数据库备份文件
+*.sql.bak
+*.sql.backup
+*.dump
+database/backups/
+
+# 数据库文件（如果使用本地数据库）
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# 配置文件（包含敏感信息）
+# ============================================
+# 本地配置（不要提交）
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# 环境变量文件（包含密钥）
+.env.production.local
+*.env.secret
+
+# ============================================
+# 操作系统相关
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# 编辑器相关
+# ============================================
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# ============================================
+# 部署相关
+# ============================================
+# Docker
+.dockerignore
+
+# CI/CD
+.github/workflows/*.log
+
+# 部署临时文件
+deploy/
+*.tar.gz
+*.zip
+
+# ============================================
+# 其他
+# ============================================
+# 临时文件
+*.bak
+*.tmp
+*.temp
+*.cache
+
+# 测试文件
+test-output/
+*.test
+
+# 文档生成
+docs/.vuepress/dist/
+
+# 敏感信息提醒
+# 请不要提交以下文件：
+# - 包含API密钥的配置文件
+# - 数据库密码
+# - JWT密钥
+# - 阿里云OSS密钥
