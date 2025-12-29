@@ -82,10 +82,12 @@ const handleLogout = () => {
 
         <div class="flex items-center gap-4">
           <div class="text-right hidden md:block">
-            <p class="text-sm font-medium text-white">Admin</p>
+            <p class="text-sm font-medium text-white">{{ user?.nickname || 'Admin' }}</p>
             <p class="text-xs text-gray-400">超级管理员</p>
           </div>
-          <div class="w-10 h-10 rounded-full bg-slate-700"></div>
+          <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
+            <img v-if="user?.avatar" :src="user.avatar" class="w-full h-full object-cover" alt="Avatar" />
+          </div>
         </div>
       </header>
 

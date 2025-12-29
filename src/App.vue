@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import TheHeader from '@/components/layout/TheHeader.vue'
 import CyberBackground from '@/components/ui/CyberBackground.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
@@ -8,6 +9,8 @@ import GlobalModal from '@/components/ui/GlobalModal.vue'
 
 // 核心考核点：采用组件懒加载策略
 const TheFooter = defineAsyncComponent(() => import('@/components/layout/TheFooter.vue'))
+
+const authStore = useAuthStore()
 
 // 鼠标光晕效果
 const mouseX = ref(0)
@@ -18,6 +21,7 @@ const handleMouseMove = (e: MouseEvent) => {
 }
 
 onMounted(() => {
+  authStore.initAuth()
   window.addEventListener('mousemove', handleMouseMove)
 })
 

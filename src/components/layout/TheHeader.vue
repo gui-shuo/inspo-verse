@@ -4,7 +4,11 @@ import { useWindowScroll } from '@vueuse/core'
 import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
-import { User, LogOut, ChevronDown } from 'lucide-vue-next'
+import { 
+  User, LogOut, ChevronDown, 
+  Home, Compass, MessageSquare, Bot, Crown,
+  Gamepad2, Tv, Palette, Info, FileText, Headphones
+} from 'lucide-vue-next'
 
 const { y } = useWindowScroll()
 const authStore = useAuthStore()
@@ -20,6 +24,20 @@ const headerClass = computed(() => {
 const handleLogout = () => {
   authStore.logout()
 }
+
+const dropdownNavItems = [
+  { name: '首页', path: '/', icon: Home },
+  { name: '发现', path: '/explore', icon: Compass },
+  { name: '论坛', path: '/forum', icon: MessageSquare },
+  { name: 'AI 助手', path: '/ai-chat', icon: Bot },
+  { name: '会员中心', path: '/vip', icon: Crown },
+  { name: '热门游戏', path: '/games', icon: Gamepad2 },
+  { name: '动漫番剧', path: '/anime', icon: Tv },
+  { name: '创意工坊', path: '/workshop', icon: Palette },
+  { name: '关于我们', path: '/about', icon: Info },
+  { name: '社区规范', path: '/rules', icon: FileText },
+  { name: '联系客服', path: '/contact', icon: Headphones },
+]
 </script>
 
 <template>
@@ -76,6 +94,20 @@ const handleLogout = () => {
               <RouterLink to="/user" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
                 <User class="w-4 h-4" /> 个人中心
               </RouterLink>
+              
+              <div class="my-1 border-t border-white/10"></div>
+              
+              <RouterLink 
+                v-for="item in dropdownNavItems" 
+                :key="item.path" 
+                :to="item.path" 
+                class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
+              >
+                <component :is="item.icon" class="w-4 h-4" /> {{ item.name }}
+              </RouterLink>
+
+              <div class="my-1 border-t border-white/10"></div>
+
               <button @click="handleLogout" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left">
                 <LogOut class="w-4 h-4" /> 退出登录
               </button>
