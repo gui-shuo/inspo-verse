@@ -317,75 +317,69 @@ flowchart TB
 
 利用实体-关系模型识别、描述数据库中的实体、属性与关系，为数据建模打基础。采用规范化技术将数据库设计成关系模式，消除冗余数据、提升一致性，优化存储与查询效率。依据需求与规范化流程设计数据库表，明确表间关系，同时考虑表结构、字段类型、主键、外键和约束等。为提高查询效率，设计合适索引，借助索引按列快速搜索数据。
 
-为了全面支撑 Inspo-Verse 灵感岛的复杂业务逻辑，包括登录/注册（P-LOGIN）、探索页与创意工坊（P-EXPLORE / P-WORKSHOP / P-GAMES / P-ANIME）、论坛社区（P-FORUM）、AI 创意助手（P-AI-CHAT）、个人中心与会员中心（P-USER / P-VIP）、后台运营控制台（P-ADMIN）以及联系反馈（P-CONTACT）等功能模块，本系统共设计了 **20** 个数据表。这些数据表构建了一个高内聚、低耦合的关系型数据模型，与实际前端路由和业务页面一一对应。
+为了支撑 Inspo-Verse 灵感岛庞大的赛博朋克创意生态，本项目构建了一个包含 **46** 个数据表的复杂关系型数据库系统。该系统采用了模块化设计思想，将数据模型划分为七大核心领域：**用户权限与安全**、**AI 核心引擎**、**内容社区生态**、**创意工坊交易**、**社交互动网络**、**任务与成就体系**以及**系统运营管理**。这些模块通过清晰的外键约束紧密耦合，共同构成了一个高可用、可扩展的数据底座。
 
 #### 核心实体关系概述：
 
-1.  **用户中心 (User Center)**：`sys_users` 为核心，关联 `sys_user_profiles`（扩展信息）、`sys_vip_plans`（会员订阅）、`sys_follows`（社交关注），共同支撑登录/注册页面、个人中心（UserCenterView）以及后台用户管理（Admin/UserManagement）中用户信息、等级与关系网络的展示与维护。
-2.  **AI 助手 (AI Copilot)**：`ai_sessions` 记录会话窗口，`ai_messages` 存储多轮对话消息，`ai_models` 定义可选模型及权限，直接支撑 AI 对话页（AIChatView）和后台 AI 监控页（Admin/AIMonitor）中的会话列表、流式回复与模型切换能力。
-3.  **内容生态 (Content Ecosystem)**：`sys_resources`（创意工坊与探索内容）、`sys_posts`（论坛帖子）作为主要内容载体，通过 `sys_tags` 进行分类，通过 `sys_comments` 和 `sys_favorites` 实现评论与收藏交互，对应探索页（ExploreView、GamesView、AnimeView）、创意工坊（WorkshopView）和论坛（ForumView）的内容流与互动行为。
-4.  **任务与成长 (Growth System)**：`sys_tasks` 定义每日任务与奖励规则，`sys_user_tasks` 追踪用户完成进度并发放积分奖励，配合 `sys_vip_plans` 与用户积分字段，共同支撑会员中心（VipCenterView）中任务列表、积分成长曲线以及会员权益对比。
-5.  **运营与反馈 (Operations)**：`sys_orders` 记录交易流水（会员订阅、点数包与周边等），`sys_feedbacks` 收集用户在“联系客服”（ContactView）中提交的建议，`sys_notifications` 负责站内消息触达，`sys_logs` 和 `sys_daily_stats` 为后台仪表盘（DashboardView）提供运营统计与审计数据。
+1.  **用户权限 (User & Auth)**: 以 `sys_users` 为核心，通过 `sys_roles` 和 `sys_permissions` 实现 RBAC 权限控制，结合 `sys_user_auths` 支持多渠道登录，`sys_login_history` 记录安全审计日志。
+2.  **AI 引擎 (AI Engine)**: `ai_sessions` 与 `ai_messages` 记录对话流，`ai_prompts` 构建提示词市场，`ai_usage_logs` 精确追踪 Token 消耗。
+3.  **社区内容 (Community)**: `sys_posts` 与 `sys_resources` 作为内容主体，通过 `sys_categories` 和 `sys_tags` 进行多维分类，支持 `sys_collections` 进行个性化收藏，`sys_reports` 维护社区秩序。
+4.  **交易系统 (Marketplace)**: `sys_orders` 关联 `shop_order_items` 记录详细交易清单，`shop_carts` 管理购物车，`shop_refunds` 处理售后流程，`sys_resource_versions` 实现资源版本控制。
+5.  **社交互动 (Social)**: `sys_follows` 建立关注网络，`sys_private_messages` 实现即时通讯，`sys_comments` 承载全站互动。
+6.  **成长体系 (Gamification)**: `sys_vip_plans` 定义会员权益，`sys_badges` 与 `sys_user_badges` 构建成就系统，`sys_tasks` 驱动用户活跃，`sys_user_vip_history` 记录订阅生命周期。
+7.  **系统运维 (System Ops)**: `sys_logs` 审计全链路操作，`sys_configs` 实现热更新配置，`sys_files` 统一管理多媒体资源，`sys_announcements` 发布全站公告。
 
-图 5.1 展示了 Inspo-Verse 灵感岛系统的完整 E-R 图，清晰描述了各实体间的关联关系。
+图 5.1 展示了 Inspo-Verse 灵感岛系统的宏观 E-R 架构图。
 
 ```mermaid
 erDiagram
-    %% 用户与基础关系
+    %% 1. 用户与权限
+    sys_users ||--o{ sys_user_auths : "绑定"
+    sys_users ||--o{ sys_user_roles : "拥有"
+    sys_roles ||--o{ sys_user_roles : "授予"
+    sys_roles ||--o{ sys_role_permissions : "包含"
+    sys_permissions ||--o{ sys_role_permissions : "定义"
     sys_users ||--|| sys_user_profiles : "扩展信息"
-    sys_users ||--o{ sys_follows : "关注"
-    sys_users ||--o{ sys_notifications : "接收"
-    sys_users ||--o{ sys_feedbacks : "提交"
-    sys_users ||--o{ sys_logs : "操作记录"
+    sys_users ||--o{ sys_login_history : "记录"
 
-    %% 交易与会员
-    sys_users ||--o{ sys_orders : "支付"
-    sys_vip_plans ||--o{ sys_orders : "被订阅"
-
-    %% 任务系统
-    sys_users ||--o{ sys_user_tasks : "执行"
-    sys_tasks ||--o{ sys_user_tasks : "定义"
-
-    %% AI 系统
+    %% 2. AI 系统
     sys_users ||--o{ ai_sessions : "创建"
     ai_sessions ||--o{ ai_messages : "包含"
-    ai_models ||--o{ ai_sessions : "支持"
+    ai_models ||--o{ ai_sessions : "驱动"
+    sys_users ||--o{ ai_prompts : "发布"
+    ai_prompts ||--o{ ai_prompt_tags : "标记"
+    sys_users ||--o{ ai_usage_logs : "消耗"
 
-    %% 内容生态
+    %% 3. 内容与社区
     sys_users ||--o{ sys_posts : "发布"
-    sys_users ||--o{ sys_resources : "上传/下载"
+    sys_posts ||--o{ sys_post_drafts : "草稿"
     sys_users ||--o{ sys_comments : "评论"
-    sys_users ||--o{ sys_favorites : "收藏"
+    sys_users ||--o{ sys_collections : "创建"
+    sys_collections ||--o{ sys_collection_items : "收藏"
+    sys_categories ||--o{ sys_posts : "分类"
+    sys_users ||--o{ sys_reports : "举报"
+    
+    %% 4. 交易与工坊
+    sys_users ||--o{ sys_resources : "上传"
+    sys_resources ||--o{ sys_resource_versions : "版本"
+    sys_users ||--o{ shop_carts : "拥有"
+    shop_carts ||--o{ shop_cart_items : "包含"
+    sys_users ||--o{ sys_orders : "下单"
+    sys_orders ||--o{ shop_order_items : "明细"
+    sys_orders ||--o{ shop_refunds : "售后"
 
-    %% 标签系统
-    sys_resources }o--o{ sys_tags : "标记"
-    sys_posts }o--o{ sys_tags : "标记"
+    %% 5. 社交与成长
+    sys_users ||--o{ sys_follows : "关注"
+    sys_users ||--o{ sys_private_messages : "发送"
+    sys_users ||--o{ sys_user_badges : "获得"
+    sys_badges ||--o{ sys_user_badges : "定义"
+    sys_users ||--o{ sys_user_tasks : "执行"
+    sys_vip_plans ||--o{ sys_user_vip_history : "订阅"
 
     sys_users {
         bigint id PK
         string username
         string nickname
-        enum role
-        enum level
-    }
-    
-    ai_sessions {
-        bigint id PK
-        string title
-        int model_id
-    }
-    
-    sys_resources {
-        bigint id PK
-        string title
-        enum type
-        int price
-    }
-
-    sys_vip_plans {
-        int id PK
-        string name
-        decimal price
     }
 ```
 
@@ -393,9 +387,9 @@ erDiagram
 
 ### 2. 数据表描述
 
-MySQL是被广泛使用的数据库系统之一，在各种应用场景中都有很好的表现，它具有成熟和稳定的特性，能够处理大量的并发请求，并保证数据的一致性和可靠性。在本项目中，我们设计了以下核心数据表来支撑业务逻辑。
+MySQL是被广泛使用的数据库系统之一，在各种应用场景中都有很好的表现，它具有成熟和稳定的特性，能够处理大量的并发请求，并保证数据的一致性和可靠性。在本项目中，我们设计了 **46** 个核心数据表来支撑业务逻辑。
 
-#### 2.1 用户中心模块
+#### 2.1 用户权限与安全模块 (User & Security)
 
 1. **用户表 (sys_users)**：存储账号核心信息，用于认证与鉴权。
 
@@ -407,13 +401,13 @@ MySQL是被广泛使用的数据库系统之一，在各种应用场景中都有
 | password_hash | VARCHAR | 255 | NO | False | 密码哈希 |
 | nickname | VARCHAR | 50 | YES | False | 用户昵称 |
 | avatar_url | VARCHAR | 500 | YES | False | 头像地址 |
-| role | ENUM | 10 | NO | False | 角色(user/admin) |
-| level | ENUM | 10 | NO | False | 会员等级(normal/silver/gold/diamond) |
-| points | INT | 11 | NO | False | 账户积分余额 |
-| status | ENUM | 10 | NO | False | 状态(active/banned) |
+| role | ENUM | 10 | NO | False | 角色类型 |
+| level | ENUM | 10 | NO | False | 会员等级 |
+| points | INT | 11 | NO | False | 积分余额 |
+| status | ENUM | 10 | NO | False | 账号状态 |
 | created_at | TIMESTAMP | 19 | NO | False | 注册时间 |
 
-2. **用户档案表 (sys_user_profiles)**：存储非核心的用户扩展信息，实现冷热数据分离。
+2. **用户扩展信息表 (sys_user_profiles)**：用户的非核心属性。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -421,212 +415,430 @@ MySQL是被广泛使用的数据库系统之一，在各种应用场景中都有
 | bio | VARCHAR | 255 | YES | False | 个人简介 |
 | location | VARCHAR | 100 | YES | False | 所在地 |
 | website | VARCHAR | 200 | YES | False | 个人网站 |
-| social_links | JSON | 0 | YES | False | 社交媒体链接(JSON) |
-| preferences | JSON | 0 | YES | False | 用户偏好设置 |
+| gender | TINYINT | 1 | YES | False | 性别 |
+| birthday | DATE | 0 | YES | False | 生日 |
+| preferences | JSON | 0 | YES | False | 偏好设置 |
 
-3. **关注表 (sys_follows)**：记录用户之间的社交关注关系。
+3. **第三方认证表 (sys_user_auths)**：支持 GitHub、Google 等多平台登录。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | BIGINT | 20 | NO | True | 关注记录ID |
-| follower_id | BIGINT | 20 | NO | False | 关注者ID |
-| following_id | BIGINT | 20 | NO | False | 被关注者ID |
-| created_at | TIMESTAMP | 19 | NO | False | 关注时间 |
+| id | BIGINT | 20 | NO | True | 认证ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| identity_type | VARCHAR | 20 | NO | False | 登录类型(email/github) |
+| identifier | VARCHAR | 100 | NO | False | 唯一标识(openid) |
+| credential | VARCHAR | 255 | YES | False | 凭证(token) |
+| created_at | TIMESTAMP | 19 | NO | False | 绑定时间 |
 
-#### 2.2 AI 创意助手模块
+4. **角色表 (sys_roles)**：RBAC 角色定义。
 
-4. **AI会话表 (ai_sessions)**：记录用户创建的每一个对话窗口。
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 角色ID |
+| name | VARCHAR | 50 | NO | False | 角色名称 |
+| code | VARCHAR | 50 | NO | False | 角色代码(admin/editor) |
+| description | VARCHAR | 200 | YES | False | 描述 |
+
+5. **权限表 (sys_permissions)**：细粒度权限定义。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 权限ID |
+| name | VARCHAR | 50 | NO | False | 权限名称 |
+| code | VARCHAR | 50 | NO | False | 权限代码(post:delete) |
+| type | ENUM | 10 | NO | False | 类型(menu/button) |
+
+6. **角色-权限关联表 (sys_role_permissions)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| role_id | INT | 11 | NO | True | 角色ID |
+| permission_id | INT | 11 | NO | True | 权限ID |
+
+7. **用户-角色关联表 (sys_user_roles)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| user_id | BIGINT | 20 | NO | True | 用户ID |
+| role_id | INT | 11 | NO | True | 角色ID |
+
+8. **登录日志表 (sys_login_history)**：安全审计。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 记录ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| ip_address | VARCHAR | 50 | NO | False | 登录IP |
+| device | VARCHAR | 100 | YES | False | 设备信息 |
+| location | VARCHAR | 100 | YES | False | 地理位置 |
+| login_at | TIMESTAMP | 19 | NO | False | 登录时间 |
+
+#### 2.2 AI 核心引擎模块 (AI Engine)
+
+9. **AI模型配置表 (ai_models)**：管理 LLM 模型参数。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 模型ID |
+| name | VARCHAR | 50 | NO | False | 模型名称 |
+| api_key | VARCHAR | 255 | YES | False | API密钥(加密) |
+| base_url | VARCHAR | 255 | YES | False | 接口地址 |
+| max_tokens | INT | 11 | NO | False | 最大Token限制 |
+| vip_only | TINYINT | 1 | NO | False | 是否VIP专属 |
+
+10. **AI会话表 (ai_sessions)**：对话窗口。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 会话ID |
 | user_id | BIGINT | 20 | NO | False | 用户ID |
 | title | VARCHAR | 100 | NO | False | 会话标题 |
-| model_id | INT | 11 | NO | False | 使用的模型ID |
+| model_id | INT | 11 | NO | False | 模型ID |
 | is_archived | TINYINT | 1 | NO | False | 是否归档 |
 | created_at | TIMESTAMP | 19 | NO | False | 创建时间 |
-| updated_at | TIMESTAMP | 19 | NO | False | 最后活跃时间 |
 
-5. **AI消息表 (ai_messages)**：存储对话历史记录，支持 Markdown 格式。
+11. **AI消息表 (ai_messages)**：对话上下文。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 消息ID |
 | session_id | BIGINT | 20 | NO | False | 会话ID |
-| role | ENUM | 10 | NO | False | 发送角色(user/assistant/system) |
-| content | TEXT | 0 | NO | False | 消息内容 |
-| token_usage | INT | 11 | YES | False | 消耗Token数 |
+| role | ENUM | 10 | NO | False | 角色(user/assistant) |
+| content | TEXT | 0 | NO | False | 内容 |
 | created_at | TIMESTAMP | 19 | NO | False | 发送时间 |
 
-6. **AI模型表 (ai_models)**：定义系统支持的 LLM 模型配置，与前端 AI 对话页中的模型下拉菜单保持一致。
+12. **提示词市场表 (ai_prompts)**：用户分享的 Prompt。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | INT | 11 | NO | True | 模型ID |
-| name | VARCHAR | 50 | NO | False | 模型名称(e.g., GPT-4) |
-| code | VARCHAR | 50 | NO | False | 调用代码(creative/precise/coding) |
-| description | VARCHAR | 255 | YES | False | 功能描述 |
-| vip_required | TINYINT | 1 | NO | False | 是否VIP专属 |
-
-#### 2.3 创意社区与内容模块
-
-7. **创意资源表 (sys_resources)**：存储工坊中的模型、插件等资源。
-
-| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| id | BIGINT | 20 | NO | True | 资源ID |
-| user_id | BIGINT | 20 | NO | False | 发布者ID |
-| title | VARCHAR | 100 | NO | False | 资源标题 |
-| type | ENUM | 20 | NO | False | 类型(mod/asset/tool) |
-| description | TEXT | 0 | YES | False | 详细描述 |
-| cover_url | VARCHAR | 500 | NO | False | 封面图URL |
-| file_url | VARCHAR | 500 | NO | False | 下载链接 |
-| price | INT | 11 | NO | False | 积分价格(0为免费) |
-| download_count | INT | 11 | NO | False | 下载次数 |
+| id | BIGINT | 20 | NO | True | 提示词ID |
+| user_id | BIGINT | 20 | NO | False | 作者ID |
+| title | VARCHAR | 100 | NO | False | 标题 |
+| content | TEXT | 0 | NO | False | 提示词内容 |
+| usage_count | INT | 11 | NO | False | 使用次数 |
 | created_at | TIMESTAMP | 19 | NO | False | 发布时间 |
 
-8. **社区帖子表 (sys_posts)**：存储论坛帖子内容。
+13. **提示词分类表 (ai_prompt_categories)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 分类ID |
+| name | VARCHAR | 50 | NO | False | 分类名称 |
+| sort | INT | 11 | NO | False | 排序权重 |
+
+14. **AI使用记录表 (ai_usage_logs)**：Token 消耗统计。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 记录ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| model_id | INT | 11 | NO | False | 模型ID |
+| input_tokens | INT | 11 | NO | False | 输入Token |
+| output_tokens | INT | 11 | NO | False | 输出Token |
+| cost | DECIMAL | 10,6 | NO | False | 预估成本 |
+| created_at | TIMESTAMP | 19 | NO | False | 调用时间 |
+
+15. **提示词标签关联表 (ai_prompt_tags)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| prompt_id | BIGINT | 20 | NO | True | 提示词ID |
+| tag_id | INT | 11 | NO | True | 标签ID |
+
+#### 2.3 内容社区模块 (Community)
+
+16. **帖子表 (sys_posts)**：论坛核心内容。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 帖子ID |
 | user_id | BIGINT | 20 | NO | False | 作者ID |
+| category_id | INT | 11 | NO | False | 分类ID |
 | title | VARCHAR | 100 | NO | False | 标题 |
-| category | VARCHAR | 50 | NO | False | 板块(game/anime/ai/chat) |
-| content | TEXT | 0 | NO | False | 内容(HTML/Markdown) |
+| content | TEXT | 0 | NO | False | 正文 |
 | view_count | INT | 11 | NO | False | 浏览量 |
 | like_count | INT | 11 | NO | False | 点赞数 |
-| is_top | TINYINT | 1 | NO | False | 是否置顶 |
-| created_at | TIMESTAMP | 19 | NO | False | 发布时间 |
+| status | ENUM | 10 | NO | False | 状态(published/hidden) |
 
-9. **评论表 (sys_comments)**：统一的评论管理表，支持对资源和帖子进行评论。
+17. **帖子草稿表 (sys_post_drafts)**：自动保存的草稿。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 草稿ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| content | JSON | 0 | NO | False | 草稿内容(JSON) |
+| updated_at | TIMESTAMP | 19 | NO | False | 最后保存 |
+
+18. **评论表 (sys_comments)**：统一评论系统。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 评论ID |
-| user_id | BIGINT | 20 | NO | False | 评论人ID |
+| target_type | ENUM | 20 | NO | False | 目标类型 |
 | target_id | BIGINT | 20 | NO | False | 目标ID |
-| target_type | ENUM | 20 | NO | False | 目标类型(post/resource) |
-| content | VARCHAR | 1000 | NO | False | 评论内容 |
-| parent_id | BIGINT | 20 | YES | False | 父评论ID(回复功能) |
-| created_at | TIMESTAMP | 19 | NO | False | 评论时间 |
+| content | VARCHAR | 1000 | NO | False | 内容 |
+| parent_id | BIGINT | 20 | YES | False | 父评论ID |
 
-10. **标签表 (sys_tags)**：定义内容标签。
+19. **全局分类表 (sys_categories)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 分类ID |
+| name | VARCHAR | 50 | NO | False | 名称 |
+| type | ENUM | 20 | NO | False | 适用模块(post/resource) |
+
+20. **标签表 (sys_tags)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | INT | 11 | NO | True | 标签ID |
-| name | VARCHAR | 50 | NO | False | 标签名称 |
-| color | VARCHAR | 20 | YES | False | 显示颜色 |
+| name | VARCHAR | 50 | NO | False | 名称 |
 
-11. **资源-标签关联表 (sys_resource_tags)**
+21. **资源-标签关联表 (sys_resource_tags)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | resource_id | BIGINT | 20 | NO | True | 资源ID |
 | tag_id | INT | 11 | NO | True | 标签ID |
 
-12. **收藏表 (sys_favorites)**：记录用户的收藏行为。
+22. **帖子-标签关联表 (sys_post_tags)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | BIGINT | 20 | NO | True | 收藏ID |
-| user_id | BIGINT | 20 | NO | False | 用户ID |
+| post_id | BIGINT | 20 | NO | True | 帖子ID |
+| tag_id | INT | 11 | NO | True | 标签ID |
+
+23. **收藏夹表 (sys_collections)**：用户自定义收藏列表。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 收藏夹ID |
+| user_id | BIGINT | 20 | NO | False | 创建者 |
+| name | VARCHAR | 50 | NO | False | 名称 |
+| is_public | TINYINT | 1 | NO | False | 是否公开 |
+
+24. **收藏项表 (sys_collection_items)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| collection_id | BIGINT | 20 | NO | True | 收藏夹ID |
+| target_type | ENUM | 20 | NO | False | 目标类型 |
 | target_id | BIGINT | 20 | NO | False | 目标ID |
-| target_type | ENUM | 20 | NO | False | 目标类型(post/resource) |
-| created_at | TIMESTAMP | 19 | NO | False | 收藏时间 |
 
-#### 2.4 会员成长与任务模块
+#### 2.4 创意工坊与交易模块 (Marketplace)
 
-13. **会员套餐表 (sys_vip_plans)**：定义不同的会员订阅计划，对应会员中心页中“白银公民 / 黄金极客 / 赛博领主”等套餐卡片。
+25. **资源表 (sys_resources)**：数字资产主表。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | INT | 11 | NO | True | 套餐ID |
-| name | VARCHAR | 50 | NO | False | 套餐名称(如:黄金极客) |
-| price | DECIMAL | 10,2 | NO | False | 价格 |
-| duration_days | INT | 11 | NO | False | 有效天数 |
-| privileges | JSON | 0 | YES | False | 权益列表(JSON) |
+| id | BIGINT | 20 | NO | True | 资源ID |
+| title | VARCHAR | 100 | NO | False | 标题 |
+| price | INT | 11 | NO | False | 价格(积分) |
+| file_url | VARCHAR | 500 | NO | False | 文件地址 |
+| sales_count | INT | 11 | NO | False | 销量 |
 
-14. **任务配置表 (sys_tasks)**：定义每日任务与奖励，对应会员中心页中“每日签到、发布动态、邀请新用户”等任务配置。
+26. **资源版本表 (sys_resource_versions)**：版本控制。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | INT | 11 | NO | True | 任务ID |
-| title | VARCHAR | 100 | NO | False | 任务标题 |
-| reward_points | INT | 11 | NO | False | 奖励积分 |
-| target_count | INT | 11 | NO | False | 目标完成次数 |
-| type | VARCHAR | 50 | NO | False | 任务类型(daily/weekly) |
+| id | BIGINT | 20 | NO | True | 版本ID |
+| resource_id | BIGINT | 20 | NO | False | 资源ID |
+| version | VARCHAR | 20 | NO | False | 版本号 |
+| changelog | TEXT | 0 | YES | False | 更新日志 |
 
-15. **用户任务记录表 (sys_user_tasks)**：追踪用户任务完成进度。
+27. **购物车表 (shop_carts)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 购物车ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+
+28. **购物车项表 (shop_cart_items)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| cart_id | BIGINT | 20 | NO | True | 购物车ID |
+| resource_id | BIGINT | 20 | NO | False | 商品ID |
+| quantity | INT | 11 | NO | False | 数量 |
+
+29. **订单表 (sys_orders)**：交易核心。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 订单ID |
+| order_no | VARCHAR | 64 | NO | False | 订单号 |
+| total_amount | DECIMAL | 10,2 | NO | False | 总金额 |
+| status | ENUM | 20 | NO | False | 状态 |
+
+30. **订单明细表 (shop_order_items)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 明细ID |
+| order_id | BIGINT | 20 | NO | False | 订单ID |
+| product_name | VARCHAR | 100 | NO | False | 商品快照 |
+| price | DECIMAL | 10,2 | NO | False | 成交价 |
+
+31. **退款申请表 (shop_refunds)**：售后管理。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 退款ID |
+| order_id | BIGINT | 20 | NO | False | 订单ID |
+| reason | VARCHAR | 255 | NO | False | 原因 |
+| status | ENUM | 20 | NO | False | 状态 |
+
+#### 2.5 社交互动模块 (Social)
+
+32. **关注表 (sys_follows)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| follower_id | BIGINT | 20 | NO | True | 粉丝ID |
+| following_id | BIGINT | 20 | NO | True | 被关注ID |
+
+33. **点赞表 (sys_likes)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| user_id | BIGINT | 20 | NO | True | 用户ID |
+| target_type | ENUM | 20 | NO | True | 目标类型 |
+| target_id | BIGINT | 20 | NO | True | 目标ID |
+
+34. **私信表 (sys_private_messages)**：站内IM。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 消息ID |
+| sender_id | BIGINT | 20 | NO | False | 发送者 |
+| receiver_id | BIGINT | 20 | NO | False | 接收者 |
+| content | TEXT | 0 | NO | False | 内容 |
+| is_read | TINYINT | 1 | NO | False | 已读状态 |
+
+35. **举报表 (sys_reports)**：社区治理。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 举报ID |
+| user_id | BIGINT | 20 | NO | False | 举报人 |
+| reason | VARCHAR | 100 | NO | False | 原因 |
+| status | ENUM | 20 | NO | False | 处理结果 |
+
+36. **分享记录表 (sys_shares)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 记录ID |
 | user_id | BIGINT | 20 | NO | False | 用户ID |
-| task_id | INT | 11 | NO | False | 任务ID |
-| progress | INT | 11 | NO | False | 当前进度 |
-| status | ENUM | 10 | NO | False | 状态(ongoing/completed) |
-| updated_at | TIMESTAMP | 19 | NO | False | 更新时间 |
+| platform | VARCHAR | 20 | NO | False | 平台(wechat/x) |
 
-#### 2.5 运营与系统模块
+#### 2.6 成长与会员模块 (Gamification)
 
-16. **交易订单表 (sys_orders)**：记录所有资金变动，对应个人中心与后台订单管理中展示的会员年卡、点数包与周边订单。
+37. **会员套餐表 (sys_vip_plans)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| id | BIGINT | 20 | NO | True | 订单ID |
-| order_no | VARCHAR | 64 | NO | False | 业务订单号 |
-| user_id | BIGINT | 20 | NO | False | 用户ID |
-| type | ENUM | 20 | NO | False | 类型(vip_sub/resource_buy) |
-| amount | DECIMAL | 10,2 | NO | False | 金额 |
-| pay_method | ENUM | 20 | NO | False | 支付方式 |
-| status | ENUM | 20 | NO | False | 状态(paid/pending) |
-| created_at | TIMESTAMP | 19 | NO | False | 创建时间 |
+| id | INT | 11 | NO | True | 套餐ID |
+| name | VARCHAR | 50 | NO | False | 名称 |
+| price | DECIMAL | 10,2 | NO | False | 价格 |
 
-17. **系统通知表 (sys_notifications)**：站内消息通知。
+38. **会员订阅记录表 (sys_user_vip_history)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 记录ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| plan_id | INT | 11 | NO | False | 套餐ID |
+| start_date | DATE | 0 | NO | False | 开始日期 |
+| end_date | DATE | 0 | NO | False | 结束日期 |
+
+39. **任务表 (sys_tasks)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 任务ID |
+| name | VARCHAR | 100 | NO | False | 任务名 |
+| reward | INT | 11 | NO | False | 奖励 |
+
+40. **用户任务表 (sys_user_tasks)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 记录ID |
+| user_id | BIGINT | 20 | NO | False | 用户ID |
+| status | ENUM | 10 | NO | False | 状态 |
+
+41. **徽章表 (sys_badges)**：成就系统。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | INT | 11 | NO | True | 徽章ID |
+| name | VARCHAR | 50 | NO | False | 名称 |
+| icon_url | VARCHAR | 500 | NO | False | 图标 |
+| condition | VARCHAR | 100 | NO | False | 获取条件 |
+
+42. **用户徽章表 (sys_user_badges)**
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| user_id | BIGINT | 20 | NO | True | 用户ID |
+| badge_id | INT | 11 | NO | True | 徽章ID |
+| obtained_at | TIMESTAMP | 19 | NO | False | 获得时间 |
+
+#### 2.7 系统运维模块 (System Ops)
+
+43. **系统通知表 (sys_notifications)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 通知ID |
-| user_id | BIGINT | 20 | NO | False | 接收用户ID |
-| title | VARCHAR | 100 | NO | False | 标题 |
+| user_id | BIGINT | 20 | NO | False | 接收人 |
 | content | TEXT | 0 | NO | False | 内容 |
-| is_read | TINYINT | 1 | NO | False | 是否已读 |
-| created_at | TIMESTAMP | 19 | NO | False | 发送时间 |
 
-18. **用户反馈表 (sys_feedbacks)**：收集用户提交的建议与问题，对应“联系客服”页面中的联系表单提交记录。
+44. **用户反馈表 (sys_feedbacks)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 反馈ID |
-| user_id | BIGINT | 20 | YES | False | 用户ID(可选) |
-| name | VARCHAR | 50 | YES | False | 联系人姓名 |
-| email | VARCHAR | 100 | YES | False | 联系邮箱 |
-| message | TEXT | 0 | NO | False | 反馈内容 |
-| status | ENUM | 20 | NO | False | 处理状态 |
-| created_at | TIMESTAMP | 19 | NO | False | 提交时间 |
+| content | TEXT | 0 | NO | False | 内容 |
+| status | ENUM | 10 | NO | False | 状态 |
 
-19. **系统日志表 (sys_logs)**：记录关键操作日志。
+45. **系统日志表 (sys_logs)**
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | id | BIGINT | 20 | NO | True | 日志ID |
-| user_id | BIGINT | 20 | YES | False | 操作者ID |
-| action | VARCHAR | 50 | NO | False | 动作类型 |
-| ip | VARCHAR | 50 | YES | False | IP地址 |
-| params | JSON | 0 | YES | False | 请求参数 |
-| created_at | TIMESTAMP | 19 | NO | False | 记录时间 |
+| level | VARCHAR | 20 | NO | False | 级别(info/error) |
+| message | TEXT | 0 | NO | False | 信息 |
 
-20. **每日统计表 (sys_daily_stats)**：用于后台仪表盘的数据统计。
+46. **系统配置表 (sys_configs)**：动态参数配置。
 
 | 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| date | DATE | 0 | NO | True | 统计日期 |
-| new_users | INT | 11 | NO | False | 新增用户数 |
-| active_users | INT | 11 | NO | False | 活跃用户数 |
-| total_posts | INT | 11 | NO | False | 发帖总数 |
-| total_income | DECIMAL | 10,2 | NO | False | 总收入 |
+| id | INT | 11 | NO | True | 配置ID |
+| key_name | VARCHAR | 100 | NO | False | 键 |
+| value | TEXT | 0 | YES | False | 值 |
+
+47. **文件存储表 (sys_files)**：统一文件管理。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 文件ID |
+| name | VARCHAR | 255 | NO | False | 文件名 |
+| url | VARCHAR | 500 | NO | False | 访问地址 |
+| size | BIGINT | 20 | NO | False | 大小(字节) |
+| mime_type | VARCHAR | 50 | YES | False | 类型 |
+
+48. **系统公告表 (sys_announcements)**：全站广播。
+
+| 列名 | 类型 | 长度 | 可空 | 主键 | 描述 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| id | BIGINT | 20 | NO | True | 公告ID |
+| title | VARCHAR | 100 | NO | False | 标题 |
+| content | TEXT | 0 | NO | False | 内容 |
+| is_active | TINYINT | 1 | NO | False | 是否启用 |
+| start_time | TIMESTAMP | 19 | YES | False | 开始时间 |
+| end_time | TIMESTAMP | 19 | YES | False | 结束时间 |
 
 ## 六、产品展示
 
