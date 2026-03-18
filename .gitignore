@@ -68,6 +68,9 @@ Thumbs.db
 src/auto-imports.d.ts
 src/components.d.ts
 .eslintrc-auto-import.json
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # ============================================
 # 后端相关 (backend/)

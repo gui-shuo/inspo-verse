@@ -5,7 +5,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ../dist:/usr/share/nginx/html:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - java-api
