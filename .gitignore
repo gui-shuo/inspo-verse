@@ -181,8 +181,21 @@ $RECYCLE.BIN/
 
 # 部署临时文件
 deploy/
+!deploy/
+!deploy/.env.example
+!deploy/docker-compose.yml
+!deploy/nginx/
+!deploy/nginx/conf.d/
+!deploy/nginx/conf.d/inspo-verse.conf
+!deploy/mysql/
+!deploy/mysql/init/
+!deploy/mysql/init/001_schema.sql
 *.tar.gz
 *.zip
+
+# Python缓存
+__pycache__/
+*.pyc
 
 # ============================================
 # 其他
