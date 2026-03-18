@@ -35,8 +35,19 @@ if (-not (Test-Path $envFile)) {
 
 Write-Host "[4/5] 构建前端静态资源..."
 Set-Location $repoRoot
-npm --prefix frontend install
-npm --prefix frontend run build
+try {
+    npm --prefix frontend install
+} catch {
+    Write-Error "前端依赖安装失败，请检查 Node.js 与 npm 环境。"
+    exit 1
+}
+
+try {
+    npm --prefix frontend run build
+} catch {
+    Write-Error "前端构建失败，请检查 Node.js 版本与依赖安装情况。"
+    exit 1
+}
 
 Write-Host "[5/5] 启动 Docker Compose 服务栈..."
 Set-Location $deployDir

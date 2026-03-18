@@ -35,8 +35,14 @@ if [[ ! -f "${ENV_FILE}" ]]; then
 fi
 
 echo "[4/5] 构建前端静态资源..."
-npm --prefix "${REPO_ROOT}/frontend" install
-npm --prefix "${REPO_ROOT}/frontend" run build
+if ! npm --prefix "${REPO_ROOT}/frontend" install; then
+  echo "❌ 前端依赖安装失败，请检查 Node.js 与 npm 环境。"
+  exit 1
+fi
+if ! npm --prefix "${REPO_ROOT}/frontend" run build; then
+  echo "❌ 前端构建失败，请检查 Node.js 版本与依赖安装情况。"
+  exit 1
+fi
 
 echo "[5/5] 启动 Docker Compose 服务栈..."
 cd "${DEPLOY_DIR}"
