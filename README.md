@@ -76,3 +76,11 @@ npm run build
 ## 四、 开发心得与反思
 
 本项目在开发过程中，重点解决了组件状态共享与跨组件通信的难题。通过引入 Pinia，将 Auth 和 Chat 状态全局化，极大简化了逻辑。在 AI 模块开发中，深入理解了 Vue 的响应式原理与 DOM 更新机制（如自动滚动到底部）。虽然目前 AI 接口为模拟实现，但架构设计已预留了对接真实 LLM API 的接口层，具备良好的扩展性。
+
+---
+
+## 五、 企业级后端与部署方案
+
+已补充完整的生产级全栈落地文档（含架构链路、MySQL DDL、API 规范、SSE 流式交互、Docker/Nginx 与安全上线清单）：
+
+- [/docs/enterprise-deployment-blueprint.md](/docs/enterprise-deployment-blueprint.md)
