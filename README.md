@@ -104,3 +104,18 @@ npm run build
   - MySQL 初始化脚本 `deploy/mysql/init/001_schema.sql`
 
 > 前端已补充统一 API 客户端与 AI 流式调用封装：`src/api/*`，并在 `chat store` 中接入“流式优先、失败降级本地模拟”逻辑。
+
+### 本地一体化启动（Docker Compose）
+
+```bash
+# 1) 先构建前端静态资源（nginx 会挂载 dist）
+npm install
+npm run build
+
+# 2) 配置环境变量
+cp deploy/.env.example deploy/.env
+
+# 3) 启动服务栈
+cd deploy
+docker compose up -d --build
+```

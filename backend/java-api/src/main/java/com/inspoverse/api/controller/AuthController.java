@@ -18,6 +18,7 @@ public class AuthController {
 
   @PostMapping("/login")
   public ApiResponse<Map<String, String>> login(@RequestBody LoginRequest req) {
+    // Mock token generation for MVP scaffold. Replace with real JWT issuing service in production.
     String token = "mock-jwt-" + UUID.randomUUID();
     return ApiResponse.success(Map.of(
         "accessToken", token,

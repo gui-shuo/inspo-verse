@@ -24,8 +24,10 @@ app = FastAPI(title="inspo-python-ai", version="0.1.0")
 
 def _verify_internal_sign(sign: str | None) -> None:
     expected = os.getenv("AI_INTERNAL_SIGN_KEY")
+    if expected and not sign:
+        raise HTTPException(status_code=401, detail="Missing x-internal-sign header required for internal service authentication")
     if expected and sign != expected:
-        raise HTTPException(status_code=401, detail="invalid internal signature")
+        raise HTTPException(status_code=401, detail="Authentication failed for internal service call")
 
 
 def _response_event(event: str, payload: dict) -> str:

@@ -32,7 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = data.accessToken
       localStorage.setItem('token', data.accessToken)
       return true
-    } catch {
+    } catch (error) {
+      console.warn('loginWithPassword failed', error)
       return false
     }
   }

@@ -13,13 +13,21 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class JwtAuthInterceptor implements HandlerInterceptor {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private void writeUnauthorized(HttpServletResponse response, String message) throws Exception {
+    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.failure(40100, message)));
+  }
+
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
     String authorization = request.getHeader("Authorization");
-    if (!StringUtils.hasText(authorization) || !authorization.startsWith("Bearer ")) {
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-      response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.failure(40100, "未登录或Token无效")));
+    if (!StringUtils.hasText(authorization)) {
+      writeUnauthorized(response, "Missing Authorization header. Please include a Bearer token.");
+      return false;
+    }
+    if (!authorization.startsWith("Bearer ")) {
+      writeUnauthorized(response, "Authorization header must start with \"Bearer \".");
       return false;
     }
     return true;

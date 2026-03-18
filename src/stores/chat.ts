@@ -117,6 +117,7 @@ export const useChatStore = defineStore('chat', () => {
     // 3. 优先调用真实流式接口，失败时降级到本地模拟
     try {
       let streamFailed = false
+      let streamErrorMessage = ''
       await streamAIChat(
         {
           sessionId: conversation.id,
@@ -130,8 +131,9 @@ export const useChatStore = defineStore('chat', () => {
           onToken: (delta: string) => {
             conversation.messages[aiMsgIndex].content += delta
           },
-          onError: () => {
+          onError: (error: Error) => {
             streamFailed = true
+            streamErrorMessage = error.message
           },
           onDone: () => {
             isGenerating.value = false
@@ -140,13 +142,17 @@ export const useChatStore = defineStore('chat', () => {
         }
       )
       if (streamFailed) {
-        throw new Error('stream failed')
+        console.warn(`Falling back to mock response for session ${conversation.id} due to streaming error: ${streamErrorMessage || 'unknown error'}`)
+        await fallback()
+        return
       }
+      // Some gateways may close chunked responses without emitting an explicit `end` event.
       if (isGenerating.value) {
         isGenerating.value = false
         conversation.updatedAt = Date.now()
       }
-    } catch {
+    } catch (error) {
+      console.warn('AI stream request error, fallback to mock response', error)
       await fallback()
     }
   }

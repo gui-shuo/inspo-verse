@@ -34,16 +34,20 @@ function parseSSEChunk(chunk: string, onEvent: (event: string, data: string) => 
 }
 
 export async function streamAIChat(payload: StreamRequest, callbacks: StreamCallbacks): Promise<void> {
+  const token = localStorage.getItem('token')
+  const internalSign = import.meta.env.VITE_AI_INTERNAL_SIGN
   const response = await fetch(import.meta.env.VITE_AI_STREAM_URL || '/ai-stream/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(internalSign ? { 'x-internal-sign': internalSign } : {})
     },
     body: JSON.stringify(payload)
   })
 
   if (!response.ok || !response.body) {
-    callbacks.onError(new Error(`Streaming failed: ${response.status}`))
+    callbacks.onError(new Error(`Streaming failed: ${response.status} ${response.statusText}`))
     return
   }
 
