@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from 'axios' // In real app, use configured axios instance
+import http, { unwrapResponse } from '@/api/http'
 
 export interface User {
   username: string
@@ -14,7 +13,6 @@ export interface User {
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
-  const router = useRouter()
 
   const isAuthenticated = computed(() => !!token.value)
 
@@ -24,6 +22,20 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('token', userData.token)
     // 模拟从后端获取用户信息并缓存
     localStorage.setItem('user_info', JSON.stringify(userData))
+  }
+
+  async function loginWithPassword(username: string, password: string) {
+    try {
+      const data = await unwrapResponse<{ accessToken: string }>(
+        http.post('/auth/login', { username, password })
+      )
+      token.value = data.accessToken
+      localStorage.setItem('token', data.accessToken)
+      return true
+    } catch (error) {
+      console.warn('loginWithPassword failed', error)
+      return false
+    }
   }
 
   function logout() {
@@ -44,5 +56,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, token, isAuthenticated, login, logout, initAuth }
+  return { user, token, isAuthenticated, login, loginWithPassword, logout, initAuth }
 })

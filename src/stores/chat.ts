@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { nanoid } from 'nanoid' // We might not have nanoid installed, use simple random
 import dayjs from 'dayjs'
+import { streamAIChat } from '@/api/ai'
 
 export interface Message {
   id: string
@@ -104,18 +104,57 @@ export const useChatStore = defineStore('chat', () => {
 
     const aiMsgIndex = conversation.messages.length - 1
 
-    // 3. 模拟 AI 思考与流式输出
-    const responseText = generateMockResponse(content, currentModel.value)
-
-    // 逐字输出模拟
-    const chunks = responseText.split('')
-    for (const char of chunks) {
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 30)) // Faster typing
-      conversation.messages[aiMsgIndex].content += char
+    const fallback = async () => {
+      const responseText = generateMockResponse(content, currentModel.value)
+      for (const char of responseText.split('')) {
+        await new Promise(r => setTimeout(r, 20 + Math.random() * 30))
+        conversation.messages[aiMsgIndex].content += char
+      }
+      isGenerating.value = false
+      conversation.updatedAt = Date.now()
     }
 
-    isGenerating.value = false
-    conversation.updatedAt = Date.now()
+    // 3. 优先调用真实流式接口，失败时降级到本地模拟
+    try {
+      let streamFailed = false
+      let streamErrorMessage = ''
+      await streamAIChat(
+        {
+          sessionId: conversation.id,
+          model: currentModel.value,
+          messages: conversation.messages.map((message) => ({
+            role: message.role,
+            content: message.content
+          }))
+        },
+        {
+          onToken: (delta: string) => {
+            conversation.messages[aiMsgIndex].content += delta
+          },
+          onError: (error: Error) => {
+            streamFailed = true
+            streamErrorMessage = error.message
+          },
+          onDone: () => {
+            isGenerating.value = false
+            conversation.updatedAt = Date.now()
+          }
+        }
+      )
+      if (streamFailed) {
+        console.warn(`Falling back to mock response for session ${conversation.id} due to streaming error: ${streamErrorMessage || 'unknown error'}`)
+        await fallback()
+        return
+      }
+      // Some gateways may close chunked responses without emitting an explicit `end` event.
+      if (isGenerating.value) {
+        isGenerating.value = false
+        conversation.updatedAt = Date.now()
+      }
+    } catch (error) {
+      console.warn('AI stream request error, fallback to mock response', error)
+      await fallback()
+    }
   }
 
   function generateMockResponse(input: string, model: string) {

@@ -76,3 +76,46 @@ npm run build
 ## 四、 开发心得与反思
 
 本项目在开发过程中，重点解决了组件状态共享与跨组件通信的难题。通过引入 Pinia，将 Auth 和 Chat 状态全局化，极大简化了逻辑。在 AI 模块开发中，深入理解了 Vue 的响应式原理与 DOM 更新机制（如自动滚动到底部）。虽然目前 AI 接口为模拟实现，但架构设计已预留了对接真实 LLM API 的接口层，具备良好的扩展性。
+
+---
+
+## 五、 企业级后端与部署方案
+
+已补充完整的生产级全栈落地文档（含架构链路、MySQL DDL、API 规范、SSE 流式交互、Docker/Nginx 与安全上线清单）：
+
+- [/docs/enterprise-deployment-blueprint.md](/docs/enterprise-deployment-blueprint.md)
+
+---
+
+## 六、 已落地的工程实现（MVP）
+
+基于上述蓝图，仓库已新增可运行的后端与部署骨架：
+
+- Java API 服务：`/backend/java-api`
+  - 统一响应结构 `ApiResponse`
+  - JWT 头拦截（`Authorization: Bearer xxx`）
+  - 示例接口：`/api/v1/auth/login`、`/api/v1/users/me`、`/api/v1/public/*`
+- Python AI 服务：`/backend/python-ai`
+  - `FastAPI` + SSE 流式接口：`/ai-stream/v1/chat/completions`
+  - 健康检查：`/healthz`
+- 部署与基础设施：`/deploy`
+  - `docker-compose.yml`（Nginx / Java / Python / MySQL / Redis）
+  - Nginx 反向代理配置
+  - MySQL 初始化脚本 `deploy/mysql/init/001_schema.sql`
+
+> 前端已补充统一 API 客户端与 AI 流式调用封装：`src/api/*`，并在 `chat store` 中接入“流式优先、失败降级本地模拟”逻辑。
+
+### 本地一体化启动（Docker Compose）
+
+```bash
+# 1) 先构建前端静态资源（nginx 会挂载 dist）
+npm install
+npm run build
+
+# 2) 配置环境变量
+cp deploy/.env.example deploy/.env
+
+# 3) 启动服务栈
+cd deploy
+docker compose up -d --build
+```
