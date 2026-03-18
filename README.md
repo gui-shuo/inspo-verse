@@ -130,7 +130,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # Java 健康检查
-curl http://localhost:8080/api/v1/public/ping
+curl http://localhost:8080/actuator/health
 
 # Python 健康检查
 curl http://localhost:8000/healthz
