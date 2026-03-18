@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { nanoid } from 'nanoid'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 

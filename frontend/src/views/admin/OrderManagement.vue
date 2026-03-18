@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ShoppingBag, CheckCircle, XCircle } from 'lucide-vue-next'
+import { CheckCircle } from 'lucide-vue-next'
 
 const orders = ref([
   { id: 'ORD-001', user: 'User_A', item: '黄金会员年卡', amount: 299, status: 'completed', date: '2024-01-01' },

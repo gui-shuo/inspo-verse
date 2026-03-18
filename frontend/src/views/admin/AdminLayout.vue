@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterView, RouterLink, useRoute } from 'vue-router'
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot, Globe } from 'lucide-vue-next'
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const isCollapsed = ref(false)
@@ -82,11 +82,11 @@ const handleLogout = () => {
 
         <div class="flex items-center gap-4">
           <div class="text-right hidden md:block">
-            <p class="text-sm font-medium text-white">{{ user?.nickname || 'Admin' }}</p>
+            <p class="text-sm font-medium text-white">{{ authStore.user?.nickname || 'Admin' }}</p>
             <p class="text-xs text-gray-400">超级管理员</p>
           </div>
           <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
-            <img v-if="user?.avatar" :src="user.avatar" class="w-full h-full object-cover" alt="Avatar" />
+            <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="w-full h-full object-cover" alt="Avatar" />
           </div>
         </div>
       </header>

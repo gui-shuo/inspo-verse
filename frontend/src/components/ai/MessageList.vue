@@ -3,7 +3,7 @@ import { computed, ref, nextTick, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { Bot, User, Copy } from 'lucide-vue-next'
+import { Bot, User } from 'lucide-vue-next'
 
 const chatStore = useChatStore()
 const scrollRef = ref<HTMLElement | null>(null)

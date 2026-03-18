@@ -3,7 +3,7 @@ import { ref, onMounted, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useModalStore } from '@/stores/modal'
 import { useToastStore } from '@/stores/toast'
-import { User, Package, Settings, Save, AlertTriangle } from 'lucide-vue-next'
+import { User, Package, Settings, Save } from 'lucide-vue-next'
 import { debounce } from 'lodash-es'
 
 const authStore = useAuthStore()

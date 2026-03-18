@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Save, Bell, Power } from 'lucide-vue-next'
+import { Save, Bell } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()

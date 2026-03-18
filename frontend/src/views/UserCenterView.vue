@@ -5,7 +5,7 @@ import { useModalStore } from '@/stores/modal'
 import { useToastStore } from '@/stores/toast'
 // 引入所有需要的图标
 import { 
-  User, Package, Settings, Save, AlertTriangle, 
+  User, Package, Settings, Save, 
   Image, CreditCard, ShieldCheck, Download, Trash2, 
   Plus, Zap, ArrowUpRight, ArrowDownLeft, Gamepad2, Github 
 } from 'lucide-vue-next'
