@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Image, Plus, Trash2, Upload } from 'lucide-vue-next'
+import { Plus, Trash2, Upload } from 'lucide-vue-next'
 
 const banners = ref([
   { id: 1, title: '赛博朋克 2077', image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_hero.jpg' },

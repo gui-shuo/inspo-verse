@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bot, Activity, AlertTriangle } from 'lucide-vue-next'
+import { Activity, AlertTriangle } from 'lucide-vue-next'
 
 const logs = ref([
   { id: 1, user: 'User_A', model: 'GPT-4', prompt: '写一个 Python 爬虫...', status: 'success', tokens: 150 },

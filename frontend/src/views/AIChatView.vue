@@ -4,7 +4,7 @@ import { useChatStore } from '@/stores/chat'
 import MessageList from '@/components/ai/MessageList.vue'
 import InputArea from '@/components/ai/InputArea.vue'
 import HistoryPanel from '@/components/ai/HistoryPanel.vue'
-import { Menu, X, Sparkles, Target, Terminal, ChevronDown, Bot } from 'lucide-vue-next'
+import { Menu, X, Sparkles, Target, Terminal, ChevronDown } from 'lucide-vue-next'
 
 const chatStore = useChatStore()
 const showSidebar = ref(true)

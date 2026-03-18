@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Calendar, Tv, PlayCircle, Clock, Bell, X, Star, Volume2, VolumeX, Image as ImageIcon } from 'lucide-vue-next'
+import { Calendar, Tv, PlayCircle, Bell, X, Star } from 'lucide-vue-next'
 
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 

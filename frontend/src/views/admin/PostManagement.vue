@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MessageSquare, Trash2, Star, Eye } from 'lucide-vue-next'
+import { Trash2, Star } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { useModalStore } from '@/stores/modal'
 

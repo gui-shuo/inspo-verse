@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search, MoreVertical, Shield, ShieldAlert, UserX, UserCheck } from 'lucide-vue-next'
+import { Search, Shield, ShieldAlert } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { useModalStore } from '@/stores/modal'
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Star, Download, Play, Zap, X, Calendar, User, Gamepad2 } from 'lucide-vue-next'
+import { Star, Download, Play, X, Calendar, User, Gamepad2 } from 'lucide-vue-next'
 
 const selectedGame = ref<any>(null)
 

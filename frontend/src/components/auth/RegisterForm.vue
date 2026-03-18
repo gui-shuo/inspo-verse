@@ -41,7 +41,7 @@ const schema = yup.object({
     .required('请输入验证码')
 })
 
-const handleRegister = async (values: any) => {
+const handleRegister = async () => {
   isSubmitting.value = true
   // 模拟注册请求
   await new Promise(resolve => setTimeout(resolve, 1500))

@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
 import { Search, Heart, MessageSquare, Filter, Zap, ImageIcon, Gamepad2, Tv, X, Share2, MoreHorizontal } from 'lucide-vue-next'
 import GlitchText from '@/components/ui/GlitchText.vue'
-
-const route = useRoute()
-const router = useRouter()
 
 // 模拟分类
 const categories = [

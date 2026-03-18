@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Box, Download, Star, Cpu, X, Share2, Heart, Calendar, FileCode } from 'lucide-vue-next'
+import { Download, Star, Cpu, X, Share2, Heart } from 'lucide-vue-next'
 
 const selectedItem = ref<any>(null)
 
