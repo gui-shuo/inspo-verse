@@ -193,6 +193,7 @@ deploy/
 !deploy/mysql/
 !deploy/mysql/init/
 !deploy/mysql/init/001_schema.sql
+deploy/.env
 *.tar.gz
 *.zip
 
