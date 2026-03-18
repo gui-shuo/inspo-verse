@@ -1,42 +1,9 @@
 {
-  "name": "inspo-verse",
+  "name": "inspo-verse-root",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0",
-    "pinia": "^2.3.0",
-    "axios": "^1.7.9",
-    "vee-validate": "^4.15.0",
-    "yup": "^1.6.1",
-    "echarts": "^5.6.0",
-    "marked": "^15.0.4",
-    "dompurify": "^3.2.3",
-    "lodash-es": "^4.17.21",
-    "dayjs": "^1.11.13",
-    "gsap": "^3.12.5",
-    "animate.css": "^4.1.1",
-    "lucide-vue-next": "^0.468.0",
-    "@vueuse/core": "^12.0.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
-    "typescript": "~5.6.2",
-    "vite": "^6.0.1",
-    "vue-tsc": "^2.1.10",
-    "sass": "^1.83.0",
-    "tailwindcss": "^3.4.17",
-    "postcss": "^8.4.49",
-    "autoprefixer": "^10.4.20",
-    "@types/node": "^22.10.1",
-    "@types/lodash-es": "^4.17.12",
-    "@types/marked": "^5.0.2",
-    "@types/dompurify": "^3.0.5"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview"
   }
 }

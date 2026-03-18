@@ -57,17 +57,20 @@
 
 ### 2. 安装依赖
 ```bash
+cd frontend
 npm install
 ```
 
 ### 3. 启动开发服务器
 ```bash
+cd frontend
 npm run dev
 ```
 访问 http://localhost:5173 即可预览。
 
 ### 4. 构建生产版本
 ```bash
+cd frontend
 npm run build
 ```
 
@@ -103,14 +106,16 @@ npm run build
   - Nginx 反向代理配置
   - MySQL 初始化脚本 `deploy/mysql/init/001_schema.sql`
 
-> 前端已补充统一 API 客户端与 AI 流式调用封装：`src/api/*`，并在 `chat store` 中接入“流式优先、失败降级本地模拟”逻辑。
+> 前端已补充统一 API 客户端与 AI 流式调用封装：`frontend/src/api/*`，并在 `chat store` 中接入“流式优先、失败降级本地模拟”逻辑。
 
 ### 本地一体化启动（Docker Compose）
 
 ```bash
 # 1) 先构建前端静态资源（nginx 会挂载 dist）
+cd frontend
 npm install
 npm run build
+cd ..
 
 # 2) 配置环境变量
 cp deploy/.env.example deploy/.env
