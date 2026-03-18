@@ -79,7 +79,7 @@ open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specifie
 1. 启动 Docker Desktop；
 2. 等待状态显示 `Running`；
 3. 确认已使用 Linux 容器引擎；
-4. 重新执行手动启动命令。
+4. 执行 `cd deploy` 后，重新执行 `docker compose up -d --build`。
 
 ### 6.2 `deploy/.env` 缺失或变量为空
 
@@ -109,7 +109,7 @@ cd deploy
 docker compose down
 ```
 
-重新启动：
+重启：
 
 ```bash
 docker compose up -d --build
