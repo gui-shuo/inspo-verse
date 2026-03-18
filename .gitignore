@@ -183,17 +183,6 @@ $RECYCLE.BIN/
 .github/workflows/*.log
 
 # 部署临时文件
-deploy/
-!deploy/
-!deploy/.env.example
-!deploy/docker-compose.yml
-!deploy/nginx/
-!deploy/nginx/conf.d/
-!deploy/nginx/conf.d/inspo-verse.conf
-!deploy/mysql/
-!deploy/mysql/init/
-!deploy/mysql/init/001_schema.sql
-deploy/.env
 *.tar.gz
 *.zip
 

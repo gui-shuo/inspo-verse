@@ -84,7 +84,7 @@ npm run build
 
 ## 五、 企业级后端与部署方案
 
-已补充完整的生产级全栈落地文档（含架构链路、MySQL DDL、API 规范、SSE 流式交互、Docker/Nginx 与安全上线清单）：
+已补充完整的生产级全栈落地文档（含架构链路、MySQL DDL、API 规范、SSE 流式交互与安全上线清单）：
 
 - [/docs/enterprise-deployment-blueprint.md](/docs/enterprise-deployment-blueprint.md)
 
@@ -92,7 +92,7 @@ npm run build
 
 ## 六、 已落地的工程实现（MVP）
 
-基于上述蓝图，仓库已新增可运行的后端与部署骨架：
+基于上述蓝图，仓库已新增可运行的后端服务骨架：
 
 - Java API 服务：`/backend/java-api`
   - 统一响应结构 `ApiResponse`
@@ -101,37 +101,37 @@ npm run build
 - Python AI 服务：`/backend/python-ai`
   - `FastAPI` + SSE 流式接口：`/ai-stream/v1/chat/completions`
   - 健康检查：`/healthz`
-- 部署与基础设施：`/deploy`
-  - `docker-compose.yml`（Nginx / Java / Python / MySQL / Redis）
-  - Nginx 反向代理配置
-  - MySQL 初始化脚本 `deploy/mysql/init/001_schema.sql`
-
 > 前端已补充统一 API 客户端与 AI 流式调用封装：`frontend/src/api/*`，并在 `chat store` 中接入“流式优先、失败降级本地模拟”逻辑。
 
-### 本地一体化启动（Docker Compose）
+### 本地分服务启动（命令行）
 
-在仓库根目录按顺序执行以下命令（不使用一键脚本）：
+请分别打开 3 个终端，按顺序启动前端、Java 后端和 Python 后端：
 
 ```bash
-# 1) 安装并构建前端静态资源
+# 终端 1：前端
 npm --prefix ./frontend install
-npm --prefix ./frontend run build
-
-# 2) 准备 deploy/.env（首次执行）
-cp ./deploy/.env.example ./deploy/.env
-
-# 3) 启动服务栈
-cd deploy
-docker compose up -d --build
+npm --prefix ./frontend run dev
 ```
-
-停止服务：
 
 ```bash
-cd deploy
-docker compose down
+# 终端 2：Java 后端（默认 8080）
+cd ./backend/java-api
+mvn spring-boot:run
 ```
 
-详细故障分析与排查（含 `dockerDesktopLinuxEngine` 管道错误说明）见：
+```bash
+# 终端 3：Python 后端（默认 8000）
+cd ./backend/python-ai
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-- [/docs/one-click-startup.md](/docs/one-click-startup.md)
+可选校验：
+
+```bash
+# Java 健康检查
+curl http://localhost:8080/actuator/health
+
+# Python 健康检查
+curl http://localhost:8000/healthz
+```
