@@ -1,4 +1,4 @@
-# Inspo-Verse 一键启动说明（Docker Compose）
+# Inspo-Verse 手动启动说明（Docker Compose）
 
 本文档用于解决并规避以下常见启动失败：
 
@@ -15,41 +15,32 @@ open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specifie
 - 当 Docker Desktop 没有启动，或未切换到 Linux 容器模式时，`docker compose` 无法连接引擎；
 - 因为无法连接引擎，拉取 `nginx:1.27-alpine` 等镜像会直接失败。
 
-## 2. 已做修复（仓库内）
+## 2. 手动启动前需要了解
 
-为了避免“直接 compose 启动但报错难定位”，仓库新增了启动脚本：
+由于 `deploy/docker-compose.yml` 通过卷挂载使用 `frontend/dist`，启动前请先完成：
 
-- `deploy/one-click-up.ps1`（Windows PowerShell）
-- `deploy/one-click-up.sh`（Linux/macOS Bash）
+1. Docker 引擎可连接（`docker info` 正常）；
+2. `deploy/.env` 已创建（可由 `.env.example` 复制）；
+3. 前端静态资源已构建（`frontend/dist` 存在）。
 
-脚本会按顺序执行：
-
-1. 检查 `docker` 命令是否存在；
-2. 检查 Docker 引擎是否可连接（`docker info`）；
-3. 缺失 `deploy/.env` 时自动从 `.env.example` 生成；
-4. 自动安装前端依赖并构建 `frontend/dist`；
-5. 执行 `docker compose up -d --build`。
-
-当 Docker 引擎不可用时，会输出明确的修复提示，不再直接抛出难理解的连接错误。
-
-## 3. 一键启动（推荐）
-
-### Windows（PowerShell）
-
-在仓库根目录执行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\one-click-up.ps1
-```
-
-> 首次可能因为执行策略拦截，使用 `-ExecutionPolicy Bypass` 可临时放行当前命令。
-
-### Linux / macOS
+## 3. 手动启动命令（终端输入）
 
 在仓库根目录执行：
 
 ```bash
-bash ./deploy/one-click-up.sh
+# 1) 检查 Docker 引擎
+docker info
+
+# 2) 安装并构建前端静态资源
+npm --prefix ./frontend install
+npm --prefix ./frontend run build
+
+# 3) 首次创建 deploy/.env
+cp ./deploy/.env.example ./deploy/.env
+
+# 4) 启动容器
+cd deploy
+docker compose up -d --build
 ```
 
 ## 4. 启动前环境要求
@@ -88,11 +79,11 @@ open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specifie
 1. 启动 Docker Desktop；
 2. 等待状态显示 `Running`；
 3. 确认已使用 Linux 容器引擎；
-4. 重新执行一键脚本。
+4. 重新执行手动启动命令。
 
 ### 6.2 `deploy/.env` 缺失或变量为空
 
-脚本会自动创建 `.env`，但你仍需按需修改：
+可先手动创建 `.env`，再按需修改：
 
 - `MYSQL_ROOT_PASSWORD`
 - `JWT_SECRET`
@@ -105,7 +96,7 @@ open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specifie
 
 处理建议：
 
-- 重试一键脚本；
+- 重试 `docker compose up -d --build`；
 - 检查网络质量与代理设置；
 - 确认 Docker Hub 访问正常。
 
@@ -118,12 +109,8 @@ cd deploy
 docker compose down
 ```
 
-重启：
+重新启动：
 
 ```bash
-# Windows
-powershell -ExecutionPolicy Bypass -File .\deploy\one-click-up.ps1
-
-# Linux/macOS
-bash ./deploy/one-click-up.sh
+docker compose up -d --build
 ```

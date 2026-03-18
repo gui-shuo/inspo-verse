@@ -110,14 +110,26 @@ npm run build
 
 ### 本地一体化启动（Docker Compose）
 
+在仓库根目录按顺序执行以下命令（不使用一键脚本）：
+
 ```bash
-# Linux/macOS 一键启动
-bash ./deploy/one-click-up.sh
+# 1) 安装并构建前端静态资源
+npm --prefix ./frontend install
+npm --prefix ./frontend run build
+
+# 2) 准备 deploy/.env（首次执行）
+cp ./deploy/.env.example ./deploy/.env
+
+# 3) 启动服务栈
+cd deploy
+docker compose up -d --build
 ```
 
-```powershell
-# Windows PowerShell 一键启动
-powershell -ExecutionPolicy Bypass -File .\deploy\one-click-up.ps1
+停止服务：
+
+```bash
+cd deploy
+docker compose down
 ```
 
 详细故障分析与排查（含 `dockerDesktopLinuxEngine` 管道错误说明）见：
