@@ -1,55 +1,122 @@
-import asyncio
-import json
-import os
-from typing import AsyncGenerator, Literal
+"""
+Inspo-Verse Python AI Service
+─────────────────────────────
+Provides:
+  - LLM chat completions via LangChain + DashScope (阿里云通义千问)
+  - Voice-to-text transcription via DashScope Paraformer ASR
+  - File content extraction (PDF / TXT / DOCX / code files)
+"""
 
-from fastapi import FastAPI, Header, HTTPException
+import logging
+
+from fastapi import FastAPI, Header, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel, Field
+
+from app.config import AI_INTERNAL_SIGN_KEY, MAX_FILE_SIZE_MB, MAX_AUDIO_SIZE_MB
+from app.models import ChatRequest, VoiceTranscriptionResponse, FileExtractionResponse
+from app.services.chat_service import stream_chat
+from app.services.voice_service import transcribe_audio
+from app.services.file_service import extract_file_content
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="inspo-python-ai", version="1.0.0")
 
 
-class ChatMessage(BaseModel):
-    role: Literal["user", "assistant", "system"]
-    content: str = Field(min_length=1)
-
-
-class ChatRequest(BaseModel):
-    sessionId: str = Field(min_length=1)
-    model: str = Field(default="creative")
-    messages: list[ChatMessage] = Field(min_length=1)
-
-
-app = FastAPI(title="inspo-python-ai", version="0.1.0")
-
-
+# ── Internal auth ────────────────────────────────────────────────
 def _verify_internal_sign(sign: str | None) -> None:
-    expected = os.getenv("AI_INTERNAL_SIGN_KEY")
-    if expected and not sign:
-        raise HTTPException(status_code=401, detail="Missing x-internal-sign header required for internal service authentication")
-    if expected and sign != expected:
-        raise HTTPException(status_code=401, detail="Authentication failed for internal service call")
+    if AI_INTERNAL_SIGN_KEY and not sign:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing x-internal-sign header",
+        )
+    if AI_INTERNAL_SIGN_KEY and sign != AI_INTERNAL_SIGN_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid x-internal-sign",
+        )
 
 
-def _response_event(event: str, payload: dict) -> str:
-    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
-async def _mock_stream(content: str) -> AsyncGenerator[str, None]:
-    yield _response_event("start", {"status": "ok"})
-    answer = f"已收到你的请求：{content}。这是来自 Python AI 服务的流式响应示例。"
-    for token in answer:
-        await asyncio.sleep(0.02)
-        yield _response_event("token", {"delta": token})
-    yield _response_event("end", {"finishReason": "stop"})
-
-
+# ── Health check ─────────────────────────────────────────────────
 @app.get("/healthz")
 async def healthz() -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
 
+# ── Chat completions (SSE streaming) ─────────────────────────────
 @app.post("/ai-stream/v1/chat/completions")
-async def chat_completions(req: ChatRequest, x_internal_sign: str | None = Header(default=None)) -> StreamingResponse:
+async def chat_completions(
+    req: ChatRequest,
+    x_internal_sign: str | None = Header(default=None),
+) -> StreamingResponse:
+    """Stream LLM chat completion via SSE."""
     _verify_internal_sign(x_internal_sign)
-    last_user_message = next((m.content for m in reversed(req.messages) if m.role == "user"), "你好")
-    return StreamingResponse(_mock_stream(last_user_message), media_type="text/event-stream")
+
+    return StreamingResponse(
+        stream_chat(
+            session_id=req.sessionId,
+            mode=req.model,
+            messages=req.messages,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ── Voice transcription ─────────────────────────────────────────
+@app.post("/ai-stream/v1/voice/transcribe")
+async def voice_transcribe(
+    file: UploadFile = File(...),
+    x_internal_sign: str | None = Header(default=None),
+) -> JSONResponse:
+    """Transcribe uploaded audio to text via DashScope Paraformer ASR."""
+    _verify_internal_sign(x_internal_sign)
+
+    # Validate file size
+    file_bytes = await file.read()
+    size_mb = len(file_bytes) / (1024 * 1024)
+    if size_mb > MAX_AUDIO_SIZE_MB:
+        raise HTTPException(
+            status_code=400,
+            detail=f"音频文件过大: {size_mb:.1f}MB，最大 {MAX_AUDIO_SIZE_MB}MB",
+        )
+
+    try:
+        result = await transcribe_audio(file_bytes, file.filename or "audio.wav")
+        return JSONResponse({"code": 0, "data": result})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Voice transcription error")
+        raise HTTPException(status_code=500, detail=f"语音识别失败: {str(e)}")
+
+
+# ── File content extraction ──────────────────────────────────────
+@app.post("/ai-stream/v1/file/extract")
+async def file_extract(
+    file: UploadFile = File(...),
+    x_internal_sign: str | None = Header(default=None),
+) -> JSONResponse:
+    """Extract text content from uploaded file (PDF, TXT, DOCX, code)."""
+    _verify_internal_sign(x_internal_sign)
+
+    file_bytes = await file.read()
+    size_mb = len(file_bytes) / (1024 * 1024)
+    if size_mb > MAX_FILE_SIZE_MB:
+        raise HTTPException(
+            status_code=400,
+            detail=f"文件过大: {size_mb:.1f}MB，最大 {MAX_FILE_SIZE_MB}MB",
+        )
+
+    try:
+        result = await extract_file_content(file_bytes, file.filename or "file.txt")
+        return JSONResponse({"code": 0, "data": result})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("File extraction error")
+        raise HTTPException(status_code=500, detail=f"文件解析失败: {str(e)}")

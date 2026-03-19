@@ -157,4 +157,11 @@ public class VipService {
     VipMembership membership = getCurrentMembership(userId);
     return membership != null ? membership.getVipLevel() : 0;
   }
+
+  /**
+   * 根据ID获取套餐
+   */
+  public VipPlan getPlanById(Long planId) {
+    return vipPlanMapper.selectById(planId);
+  }
 }

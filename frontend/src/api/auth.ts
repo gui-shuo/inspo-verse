@@ -24,6 +24,7 @@ export interface UserInfo {
   avatarUrl?: string
   email?: string
   phone?: string
+  bio?: string
 }
 
 /**

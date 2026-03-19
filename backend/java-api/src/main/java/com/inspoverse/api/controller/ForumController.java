@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.inspoverse.api.common.ApiResponse;
 import com.inspoverse.api.entity.ForumComment;
 import com.inspoverse.api.entity.ForumPost;
+import com.inspoverse.api.service.FileStorageService;
 import com.inspoverse.api.service.ForumService;
 import com.inspoverse.api.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class ForumController {
   private final ForumService forumService;
   private final UserService userService;
+  private final FileStorageService fileStorageService;
 
   /**
    * 发布帖子
@@ -46,15 +49,38 @@ public class ForumController {
   }
 
   /**
+   * 社区统计（今日发帖、在线用户）
+   */
+  @GetMapping("/stats")
+  public ApiResponse<Map<String, Object>> getCommunityStats() {
+    return ApiResponse.success(forumService.getCommunityStats());
+  }
+
+  /**
+   * 上传帖子图片
+   */
+  @PostMapping("/upload-image")
+  public ApiResponse<Map<String, String>> uploadImage(
+      HttpServletRequest request,
+      @RequestParam("file") MultipartFile file
+  ) {
+    Long userId = (Long) request.getAttribute("userId");
+    String url = fileStorageService.uploadPostImage(userId, file);
+    return ApiResponse.success(Map.of("url", url));
+  }
+
+  /**
    * 获取帖子列表
    */
   @GetMapping("/posts")
   public ApiResponse<Map<String, Object>> getPostList(
       @RequestParam(required = false) String category,
+      @RequestParam(required = false) String keyword,
+      @RequestParam(defaultValue = "new") String sortBy,
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "20") int pageSize
   ) {
-    IPage<ForumPost> postPage = forumService.getPostList(category, page, pageSize);
+    IPage<ForumPost> postPage = forumService.getPostList(category, keyword, sortBy, page, pageSize);
 
     List<Map<String, Object>> posts = postPage.getRecords().stream().map(post -> {
       Map<String, Object> map = new HashMap<>();

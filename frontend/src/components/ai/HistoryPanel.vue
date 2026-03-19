@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
 import { useModalStore } from '@/stores/modal'
 import { Plus, MessageSquare, Trash2, MoreHorizontal } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
+const authStore = useAuthStore()
 const modalStore = useModalStore()
 const { conversations, currentConversationId } = storeToRefs(chatStore)
 
@@ -13,7 +15,7 @@ const handleNewChat = () => {
 }
 
 const selectChat = (id: string) => {
-  currentConversationId.value = id
+  chatStore.selectConversation(id)
 }
 
 const deleteChat = async (e: Event, id: string) => {
@@ -24,10 +26,16 @@ const deleteChat = async (e: Event, id: string) => {
     type: 'warning',
     confirmText: '确认删除'
   })
-  
+
   if (confirmed) {
     chatStore.deleteConversation(id)
   }
+}
+
+const vipLevelMap: Record<string, string> = {
+  gold: '黄金会员',
+  silver: '银牌会员',
+  normal: '普通用户',
 }
 </script>
 
@@ -35,7 +43,7 @@ const deleteChat = async (e: Event, id: string) => {
   <div class="flex flex-col h-full py-4">
     <!-- New Chat Button -->
     <div class="px-4 mb-4">
-      <button 
+      <button
         @click="handleNewChat"
         class="w-full flex items-center gap-3 px-4 py-3 bg-slate-700/50 hover:bg-slate-700 border border-white/5 rounded-xl transition-all group"
       >
@@ -52,8 +60,8 @@ const deleteChat = async (e: Event, id: string) => {
         暂无历史记录
       </div>
 
-      <div 
-        v-for="chat in conversations" 
+      <div
+        v-for="chat in conversations"
         :key="chat.id"
         @click="selectChat(chat.id)"
         class="group relative flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors"
@@ -61,9 +69,9 @@ const deleteChat = async (e: Event, id: string) => {
       >
         <MessageSquare class="w-4 h-4 flex-shrink-0" />
         <span class="text-sm truncate pr-6">{{ chat.title }}</span>
-        
-        <!-- Delete Action (Visible on hover or active) -->
-        <button 
+
+        <!-- Delete Action -->
+        <button
           @click="(e) => deleteChat(e, chat.id)"
           class="absolute right-2 p-1 rounded hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
           title="删除"
@@ -72,14 +80,16 @@ const deleteChat = async (e: Event, id: string) => {
         </button>
       </div>
     </div>
-    
+
     <!-- User Info (Bottom) -->
     <div class="mt-auto px-4 pt-4 border-t border-white/5">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-blue to-purple-500"></div>
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-blue to-purple-500 overflow-hidden">
+          <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" class="w-full h-full object-cover" alt="avatar" />
+        </div>
         <div class="flex-1 overflow-hidden">
-          <p class="text-sm font-medium text-white truncate">User Name</p>
-          <p class="text-xs text-neon-yellow truncate">黄金会员</p>
+          <p class="text-sm font-medium text-white truncate">{{ authStore.user?.nickname || authStore.user?.username || 'User' }}</p>
+          <p class="text-xs text-neon-yellow truncate">{{ vipLevelMap[authStore.user?.level || 'normal'] || '普通用户' }}</p>
         </div>
         <button class="text-gray-400 hover:text-white">
           <MoreHorizontal class="w-4 h-4" />

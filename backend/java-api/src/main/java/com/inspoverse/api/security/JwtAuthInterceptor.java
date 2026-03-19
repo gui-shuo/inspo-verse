@@ -7,6 +7,8 @@ import com.inspoverse.api.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -15,11 +17,16 @@ import org.springframework.web.servlet.HandlerInterceptor;
 /**
  * JWT 认证拦截器
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthInterceptor implements HandlerInterceptor {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final JwtUtil jwtUtil;
+  private final StringRedisTemplate redisTemplate;
+
+  private static final String ONLINE_USERS_KEY = "online:users";
+  private static final int ONLINE_TTL_SECONDS = 300; // 5分钟内认为在线
 
   private void writeUnauthorized(HttpServletResponse response, String message) throws Exception {
     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -57,6 +64,15 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
       String username = jwtUtil.getUsernameFromToken(token);
       request.setAttribute("userId", userId);
       request.setAttribute("username", username);
+
+      // 更新Redis在线用户有序集合
+      try {
+        double now = System.currentTimeMillis() / 1000.0;
+        redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, String.valueOf(userId), now);
+        redisTemplate.opsForZSet().removeRangeByScore(ONLINE_USERS_KEY, 0, now - ONLINE_TTL_SECONDS);
+      } catch (Exception e) {
+        log.warn("更新在线用户失败: {}", e.getMessage());
+      }
 
       return true;
     } catch (Exception e) {

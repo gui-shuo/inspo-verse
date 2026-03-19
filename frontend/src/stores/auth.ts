@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import http, { unwrapResponse } from '@/api/http'
 
 export interface User {
+  id?: number
   username: string
   nickname: string
   avatar: string
@@ -45,10 +46,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const userData = await unwrapResponse<any>(http.get('/users/me'))
       user.value = {
+        id: userData.id,
         username: userData.username,
         nickname: userData.nickname,
         avatar: userData.avatarUrl,
-        level: 'normal', // 暂时写死，后续从 VIP 表查询
+        level: 'normal',
         token: token.value!
       }
       localStorage.setItem('user_info', JSON.stringify(user.value))

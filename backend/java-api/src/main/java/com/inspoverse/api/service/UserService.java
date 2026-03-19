@@ -92,7 +92,7 @@ public class UserService {
   }
 
   /**
-   * 更新用户信息
+   * 更新用户信息（昵称、头像、简介、手机号）
    */
   public void updateUser(Long userId, String nickname, String avatarUrl) {
     User user = getUserById(userId);
@@ -104,5 +104,70 @@ public class UserService {
     }
     user.setUpdatedAt(LocalDateTime.now());
     userMapper.updateById(user);
+  }
+
+  /**
+   * 更新用户完整资料（含bio和phone）
+   */
+  public void updateProfile(Long userId, String nickname, String bio, String phone) {
+    User user = getUserById(userId);
+    if (nickname != null && !nickname.isBlank()) {
+      user.setNickname(nickname.trim());
+    }
+    if (bio != null) {
+      user.setBio(bio.trim());
+    }
+    if (phone != null && !phone.isBlank()) {
+      // 验证手机号格式
+      if (!phone.matches("^1[3-9]\\d{9}$")) {
+        throw new BusinessException(ErrorCode.PARAM_ERROR, "手机号格式不正确");
+      }
+      // 检查手机号是否被其他用户占用
+      User existingPhone = userMapper.selectOne(new LambdaQueryWrapper<User>()
+          .eq(User::getPhone, phone)
+          .eq(User::getIsDeleted, 0)
+          .ne(User::getId, userId));
+      if (existingPhone != null) {
+        throw new BusinessException(ErrorCode.CONFLICT, "该手机号已被其他账号绑定");
+      }
+      user.setPhone(phone);
+    }
+    user.setUpdatedAt(LocalDateTime.now());
+    userMapper.updateById(user);
+  }
+
+  /**
+   * 更新头像
+   */
+  public void updateAvatar(Long userId, String avatarUrl) {
+    User user = getUserById(userId);
+    user.setAvatarUrl(avatarUrl);
+    user.setUpdatedAt(LocalDateTime.now());
+    userMapper.updateById(user);
+  }
+
+  /**
+   * 修改密码
+   */
+  public void changePassword(Long userId, String currentPassword, String newPassword) {
+    User user = getUserById(userId);
+    if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+      throw new BusinessException(ErrorCode.PARAM_ERROR, "当前密码不正确");
+    }
+    // 新密码强度校验：8位以上含大小写字母
+    if (!newPassword.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$")) {
+      throw new BusinessException(ErrorCode.PARAM_ERROR, "新密码需8位以上且包含大小写字母及数字");
+    }
+    user.setPasswordHash(passwordEncoder.encode(newPassword));
+    user.setUpdatedAt(LocalDateTime.now());
+    userMapper.updateById(user);
+  }
+
+  /**
+   * 手机号脱敏展示
+   */
+  public static String maskPhone(String phone) {
+    if (phone == null || phone.length() < 7) return phone;
+    return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
   }
 }

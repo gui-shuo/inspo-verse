@@ -28,6 +28,12 @@ const router = createRouter({
       component: () => import('../views/ForumView.vue'),
       meta: { title: '论坛 - Inspo-Verse' }
     },
+    {
+      path: '/forum/post/:id',
+      name: 'forum-post',
+      component: () => import('../views/ForumPostDetailView.vue'),
+      meta: { title: '帖子详情 - Inspo-Verse' }
+    },
     // --- 新增 6 个极致页面 ---
     {
       path: '/games',
@@ -89,6 +95,12 @@ const router = createRouter({
       name: 'vip',
       component: () => import('../views/VipCenterView.vue'),
       meta: { title: '会员中心 - Inspo-Verse', requiresAuth: true }
+    },
+    {
+      path: '/oauth/:provider/callback',
+      name: 'oauth-callback',
+      component: () => import('../views/OAuthCallbackView.vue'),
+      meta: { title: 'OAuth 授权回调', requiresAuth: true }
     },
     {
       path: '/admin',

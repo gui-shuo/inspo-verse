@@ -21,7 +21,7 @@ const currentModelInfo = computed(() =>
 )
 
 const selectModel = (id: string) => {
-  chatStore.currentModel = id
+  chatStore.switchModel(id)
   showModelDropdown.value = false
 }
 

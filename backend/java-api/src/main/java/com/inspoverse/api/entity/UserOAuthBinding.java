@@ -2,34 +2,26 @@ package com.inspoverse.api.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 /**
- * 用户实体
+ * 第三方OAuth绑定实体
  */
 @Data
-@TableName("users")
-public class User {
+@TableName("user_oauth_bindings")
+public class UserOAuthBinding {
   @TableId(type = IdType.AUTO)
   private Long id;
 
-  private String username;
-  private String email;
-  private String phone;
-  private String passwordHash;
-  private String nickname;
-  private String avatarUrl;
-  private String bio;
-  private Integer status;
-  private LocalDateTime lastLoginAt;
+  private Long userId;
+  private String provider;          // github / discord / google
+  private String providerUserId;
+  private String providerUsername;
+  private String accessToken;
 
   @TableField(fill = FieldFill.INSERT)
   private LocalDateTime createdAt;
 
   @TableField(fill = FieldFill.INSERT_UPDATE)
   private LocalDateTime updatedAt;
-
-  @TableLogic
-  private Integer isDeleted;
 }

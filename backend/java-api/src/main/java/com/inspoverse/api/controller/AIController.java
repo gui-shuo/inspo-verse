@@ -9,7 +9,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * AI控制器
+ * AI 控制器 — 会话管理 / 流式对话 / 语音识别 / 文件解析
  */
 @RestController
 @RequestMapping("/api/v1/ai")
@@ -93,7 +96,19 @@ public class AIController {
   }
 
   /**
-   * 发送消息
+   * 发送消息 — SSE 流式回复（主要接口）
+   */
+  @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter sendMessageStream(
+      HttpServletRequest request,
+      @Valid @RequestBody ChatRequest req
+  ) {
+    Long userId = (Long) request.getAttribute("userId");
+    return aiService.sendMessageStream(userId, req.sessionId(), req.content());
+  }
+
+  /**
+   * 发送消息 — 非流式（兼容旧接口）
    */
   @PostMapping("/chat")
   public ApiResponse<Map<String, Object>> sendMessage(
@@ -108,9 +123,75 @@ public class AIController {
         "role", aiMsg.getRole(),
         "content", aiMsg.getContent(),
         "tokens", aiMsg.getTokens(),
-        "latencyMs", aiMsg.getLatencyMs(),
+        "latencyMs", aiMsg.getLatencyMs() != null ? aiMsg.getLatencyMs() : 0,
         "createdAt", aiMsg.getCreatedAt().toString()
     ));
+  }
+
+  /**
+   * 上传文件并提取内容
+   */
+  @PostMapping("/upload-file")
+  public ApiResponse<Map<String, Object>> uploadFile(
+      HttpServletRequest request,
+      @RequestParam("file") MultipartFile file
+  ) {
+    if (file.isEmpty()) {
+      return ApiResponse.failure(40001, "文件不能为空");
+    }
+    if (file.getSize() > 10 * 1024 * 1024) {
+      return ApiResponse.failure(40001, "文件大小不能超过10MB");
+    }
+
+    try {
+      Map<String, Object> result = aiService.extractFileContent(
+          file.getBytes(),
+          file.getOriginalFilename()
+      );
+      return ApiResponse.success(result);
+    } catch (Exception e) {
+      return ApiResponse.failure(50000, "文件解析失败: " + e.getMessage());
+    }
+  }
+
+  /**
+   * 语音转文字
+   */
+  @PostMapping("/voice-to-text")
+  public ApiResponse<Map<String, Object>> voiceToText(
+      HttpServletRequest request,
+      @RequestParam("file") MultipartFile file
+  ) {
+    if (file.isEmpty()) {
+      return ApiResponse.failure(40001, "音频文件不能为空");
+    }
+    if (file.getSize() > 25 * 1024 * 1024) {
+      return ApiResponse.failure(40001, "音频大小不能超过25MB");
+    }
+
+    try {
+      Map<String, Object> result = aiService.transcribeVoice(
+          file.getBytes(),
+          file.getOriginalFilename()
+      );
+      return ApiResponse.success(result);
+    } catch (Exception e) {
+      return ApiResponse.failure(50000, "语音识别失败: " + e.getMessage());
+    }
+  }
+
+  /**
+   * 更新会话模型
+   */
+  @PatchMapping("/sessions/{sessionId}/model")
+  public ApiResponse<Void> updateSessionModel(
+      HttpServletRequest request,
+      @PathVariable Long sessionId,
+      @Valid @RequestBody UpdateModelRequest req
+  ) {
+    Long userId = (Long) request.getAttribute("userId");
+    aiService.updateSessionModel(userId, sessionId, req.modelName());
+    return ApiResponse.success(null);
   }
 
   /**
@@ -126,6 +207,8 @@ public class AIController {
     return ApiResponse.success(null);
   }
 
+  // ── Request DTOs ──────────────────────────────────────────────
+
   public record CreateSessionRequest(
       String scene,
       String modelName
@@ -134,5 +217,9 @@ public class AIController {
   public record ChatRequest(
       @NotNull(message = "会话ID不能为空") Long sessionId,
       @NotBlank(message = "消息内容不能为空") String content
+  ) {}
+
+  public record UpdateModelRequest(
+      @NotBlank(message = "模型名称不能为空") String modelName
   ) {}
 }

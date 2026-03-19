@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL COMMENT '密码哈希',
   nickname VARCHAR(64) NOT NULL COMMENT '昵称',
   avatar_url VARCHAR(512) NULL COMMENT '头像URL',
+  bio TEXT NULL COMMENT '个人简介',
   status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1启用 0禁用',
   last_login_at DATETIME NULL COMMENT '最后登录时间',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -239,6 +240,69 @@ CREATE TABLE IF NOT EXISTS operation_log (
   KEY idx_op_log_module_time (module, created_at),
   KEY idx_op_log_user_time (operator_user_id, created_at)
 ) ENGINE=InnoDB COMMENT='操作审计日志';
+
+-- =========================
+-- 用户创作模块
+-- =========================
+CREATE TABLE IF NOT EXISTS user_creations (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '创作ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  title VARCHAR(255) NULL COMMENT '作品标题',
+  description TEXT NULL COMMENT '作品描述',
+  file_url VARCHAR(512) NOT NULL COMMENT '文件存储路径/URL',
+  cover_url VARCHAR(512) NULL COMMENT '封面图URL',
+  file_type VARCHAR(32) NOT NULL DEFAULT 'image' COMMENT '文件类型:image/video/audio/other',
+  file_size BIGINT NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
+  visibility TINYINT NOT NULL DEFAULT 0 COMMENT '可见性:0私密 1公开',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1正常 0已删除',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  KEY idx_uc_user_created (user_id, status, created_at),
+  KEY idx_uc_visibility (visibility, status, created_at)
+) ENGINE=InnoDB COMMENT='用户创作表';
+
+-- =========================
+-- 数字钱包模块
+-- =========================
+CREATE TABLE IF NOT EXISTS user_points (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '钱包ID',
+  user_id BIGINT NOT NULL UNIQUE COMMENT '用户ID',
+  balance INT NOT NULL DEFAULT 0 COMMENT '当前余额(点数)',
+  total_earned INT NOT NULL DEFAULT 0 COMMENT '历史累计获得',
+  total_spent INT NOT NULL DEFAULT 0 COMMENT '历史累计消耗',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  KEY idx_up_user (user_id)
+) ENGINE=InnoDB COMMENT='用户灵感点数钱包';
+
+CREATE TABLE IF NOT EXISTS point_transactions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '流水ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  amount INT NOT NULL COMMENT '变动点数(正为收入负为支出)',
+  type VARCHAR(32) NOT NULL COMMENT '类型:EARN_SIGNIN/EARN_RECHARGE/EARN_VIP_GIFT/SPEND_AI/SPEND_REDEEM',
+  description VARCHAR(255) NULL COMMENT '描述',
+  balance_after INT NOT NULL COMMENT '变动后余额',
+  ref_id VARCHAR(64) NULL COMMENT '关联业务单号',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  KEY idx_pt_user_created (user_id, created_at)
+) ENGINE=InnoDB COMMENT='灵感点数流水表';
+
+-- =========================
+-- 第三方账号绑定
+-- =========================
+CREATE TABLE IF NOT EXISTS user_oauth_bindings (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '绑定ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  provider VARCHAR(32) NOT NULL COMMENT '平台:github/discord/google',
+  provider_user_id VARCHAR(128) NOT NULL COMMENT '平台用户ID',
+  provider_username VARCHAR(128) NULL COMMENT '平台用户名',
+  access_token TEXT NULL COMMENT 'Access Token(加密存储)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_user_provider (user_id, provider),
+  UNIQUE KEY uk_provider_uid (provider, provider_user_id),
+  KEY idx_uob_user (user_id)
+) ENGINE=InnoDB COMMENT='第三方OAuth绑定表';
 
 -- =========================
 -- 初始化数据

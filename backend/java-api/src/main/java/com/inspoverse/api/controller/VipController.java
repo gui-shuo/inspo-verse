@@ -68,7 +68,7 @@ public class VipController {
   }
 
   /**
-   * 获取我的订单列表
+   * 获取我的订单列表（含套餐名称）
    */
   @GetMapping("/orders")
   public ApiResponse<List<Map<String, Object>>> getMyOrders(HttpServletRequest request) {
@@ -85,6 +85,10 @@ public class VipController {
       map.put("payChannel", order.getPayChannel());
       map.put("paidAt", order.getPaidAt() != null ? order.getPaidAt().toString() : null);
       map.put("createdAt", order.getCreatedAt().toString());
+      // 关联套餐名称
+      VipPlan plan = vipService.getPlanById(order.getVipPlanId());
+      map.put("itemName", plan != null ? plan.getPlanName() : "VIP套餐");
+      map.put("planLevel", plan != null ? plan.getLevel() : 0);
       return map;
     }).collect(Collectors.toList());
 

@@ -24,6 +24,11 @@ const request = {
     return response.data
   },
 
+  async patch<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+    const response = await http.patch(url, data)
+    return response.data
+  },
+
   async delete<T>(url: string): Promise<ApiResponse<T>> {
     const response = await http.delete(url)
     return response.data
