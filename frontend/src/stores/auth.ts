@@ -31,10 +31,29 @@ export const useAuthStore = defineStore('auth', () => {
       )
       token.value = data.accessToken
       localStorage.setItem('token', data.accessToken)
+
+      // 登录成功后获取用户信息
+      await fetchUserInfo()
       return true
     } catch (error) {
       console.warn('loginWithPassword failed', error)
       return false
+    }
+  }
+
+  async function fetchUserInfo() {
+    try {
+      const userData = await unwrapResponse<any>(http.get('/users/me'))
+      user.value = {
+        username: userData.username,
+        nickname: userData.nickname,
+        avatar: userData.avatarUrl,
+        level: 'normal', // 暂时写死，后续从 VIP 表查询
+        token: token.value!
+      }
+      localStorage.setItem('user_info', JSON.stringify(user.value))
+    } catch (error) {
+      console.warn('fetchUserInfo failed', error)
     }
   }
 
@@ -56,5 +75,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, token, isAuthenticated, login, loginWithPassword, logout, initAuth }
+  return { user, token, isAuthenticated, login, loginWithPassword, fetchUserInfo, logout, initAuth }
 })

@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import GlitchText from '@/components/ui/GlitchText.vue'
 import { Sparkles, Gamepad2, Tv, Zap, ArrowRight, Star, Heart } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+// 游客点击需要登录的功能时跳转登录页
+const requireLogin = () => {
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return false
+  }
+  return true
+}
 
 const features = [
-  { icon: Sparkles, title: 'AI 创意风暴', desc: '基于 GPT-4 的灵感生成引擎，一键生成攻略、文案与脚本' },
-  { icon: Gamepad2, title: '游戏乌托邦', desc: '汇聚全网最硬核玩家社区，覆盖 3A 大作与独立游戏' },
-  { icon: Tv, title: '番剧放映室', desc: '4K 画质沉浸式追番体验，实时弹幕互动' },
+  { icon: Sparkles, title: 'AI 创意风暴', desc: '基于 GPT-4 的灵感生成引擎，一键生成攻略、文案与脚本', link: '/ai-chat' },
+  { icon: Gamepad2, title: '游戏乌托邦', desc: '汇聚全网最硬核玩家社区，覆盖 3A 大作与独立游戏', link: '/games' },
+  { icon: Tv, title: '番剧放映室', desc: '4K 画质沉浸式追番体验，实时弹幕互动', link: '/anime' },
 ]
 
 const creators = [
@@ -70,14 +83,14 @@ onMounted(() => {
       </div>
       
       <div class="mt-12 flex flex-col md:flex-row justify-center gap-6 animate__animated animate__fadeInUp animate__delay-1s">
-        <RouterLink to="/login" class="group relative px-8 py-4 bg-neon-blue text-slate-900 font-bold text-lg rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(0,243,255,0.6)]">
+        <button @click="requireLogin() && router.push('/explore')" class="group relative px-8 py-4 bg-neon-blue text-slate-900 font-bold text-lg rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(0,243,255,0.6)]">
           <span class="relative z-10 flex items-center gap-2">
             <Zap class="w-5 h-5" /> 立即探索
           </span>
           <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-        </RouterLink>
-        
-        <button class="px-8 py-4 border border-white/20 text-white font-bold text-lg rounded-full hover:bg-white/10 hover:border-white/50 transition-all backdrop-blur-sm flex items-center gap-2 group">
+        </button>
+
+        <button @click="requireLogin()" class="px-8 py-4 border border-white/20 text-white font-bold text-lg rounded-full hover:bg-white/10 hover:border-white/50 transition-all backdrop-blur-sm flex items-center gap-2 group">
           观看演示 <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
@@ -96,10 +109,11 @@ onMounted(() => {
 
     <!-- Features Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 animate__animated animate__fadeInUp animate__delay-2s">
-      <div 
-        v-for="(feat, index) in features" 
+      <div
+        v-for="(feat, index) in features"
         :key="index"
-        class="group p-8 rounded-2xl bg-slate-800/40 border border-white/5 hover:border-neon-purple/50 hover:bg-slate-800/60 transition-all duration-300 hover:-translate-y-2 relative overflow-hidden"
+        @click="requireLogin() && router.push(feat.link)"
+        class="group p-8 rounded-2xl bg-slate-800/40 border border-white/5 hover:border-neon-purple/50 hover:bg-slate-800/60 transition-all duration-300 hover:-translate-y-2 relative overflow-hidden cursor-pointer"
       >
         <div class="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
           <ArrowRight class="w-6 h-6 text-neon-purple -rotate-45" />
@@ -120,10 +134,11 @@ onMounted(() => {
         <Star class="w-8 h-8 text-yellow-400 fill-yellow-400" />
       </h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        <div 
-          v-for="(creator, i) in creators" 
+        <div
+          v-for="(creator, i) in creators"
           :key="i"
-          class="bg-slate-800/50 backdrop-blur border border-white/5 rounded-xl p-6 hover:border-neon-blue/30 transition-all hover:transform hover:scale-105"
+          @click="requireLogin()"
+          class="bg-slate-800/50 backdrop-blur border border-white/5 rounded-xl p-6 hover:border-neon-blue/30 transition-all hover:transform hover:scale-105 cursor-pointer"
         >
           <div class="relative w-20 h-20 mx-auto mb-4">
             <img :src="creator.avatar" class="rounded-full bg-slate-700 w-full h-full object-cover border-2 border-white/10" />

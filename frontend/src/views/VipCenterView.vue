@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { Crown, Zap, Gift, Shield, Check, Star, Trophy, Activity, ArrowUpRight } from 'lucide-vue-next'
+import { getVipPlans, createVipOrder, payOrder, getMyMembership, type VipPlan, type VipMembership } from '@/api/vip'
+
+const toast = (msg: string, type: 'success' | 'error' = 'success') => {
+  const el = document.createElement('div')
+  el.textContent = msg
+  el.className = `fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-xl text-white text-sm font-medium shadow-lg transition-all ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 3000)
+}
 
 const chartRef = ref<HTMLElement | null>(null)
 let chart: echarts.ECharts | null = null
@@ -15,33 +24,24 @@ const privileges = [
   { icon: ArrowUpRight, title: '多模态输入', desc: '支持图片/音频/视频识别' },
 ]
 
-const plans = [
-  {
-    name: '白银公民',
-    price: '免费',
-    color: 'text-gray-300',
-    border: 'border-gray-600',
+const vipPlans = ref<VipPlan[]>([])
+const membership = ref<VipMembership | null>(null)
+const loading = ref(false)
+
+const plans = computed(() => {
+  return vipPlans.value.map(plan => ({
+    id: plan.id,
+    name: plan.levelName,
+    price: `¥${plan.price} / ${plan.durationDays}天`,
+    color: plan.level === 1 ? 'text-gray-300' : 'text-yellow-400',
+    border: plan.level === 1 ? 'border-gray-600' : 'border-yellow-500',
     bg: 'bg-slate-800',
-    features: ['每日 10 次对话', '基础 AI 模型', '社区发帖权限', '标准响应速度']
-  },
-  {
-    name: '黄金极客',
-    price: '¥29 / 月',
-    color: 'text-yellow-400',
-    border: 'border-yellow-500',
-    bg: 'bg-slate-800',
-    isPopular: true,
-    features: ['每日 500 次对话', '解锁 GPT-4 模型', '专属身份标识', '极速响应通道', '去广告体验']
-  },
-  {
-    name: '赛博领主',
-    price: '¥99 / 月',
-    color: 'text-neon-purple',
-    border: 'border-neon-purple',
-    bg: 'bg-slate-900',
-    features: ['无限次对话', '全模型解锁 (含画图)', '专属客户经理', 'API 接口调用', '早期功能内测', '自定义 AI 角色']
-  }
-]
+    isPopular: plan.planCode === 'GOLD_MONTH',
+    features: plan.level === 1
+      ? ['每日 100 次对话', '基础 AI 模型', '社区发帖权限', '标准响应速度']
+      : ['每日 1000 次对话', '解锁 GPT-4 模型', '专属身份标识', '极速响应通道', '去广告体验', 'API 接口调用']
+  }))
+})
 
 const tasks = [
   { title: '每日签到', reward: '+10 积分', progress: 1, total: 1, status: '已完成' },
@@ -49,6 +49,43 @@ const tasks = [
   { title: '邀请新用户', reward: '+100 积分/人', progress: 3, total: 5, status: '3/5' },
   { title: '使用 AI 绘图', reward: '+20 积分', progress: 0, total: 3, status: '0/3' },
 ]
+
+const membershipLevel = computed(() => membership.value?.levelName || '普通用户')
+const membershipExpire = computed(() => {
+  if (!membership.value?.endTime) return '未开通'
+  return membership.value.endTime.split('T')[0].replace(/-/g, '.')
+})
+
+const loadData = async () => {
+  try {
+    loading.value = true
+    const [plansRes, membershipRes] = await Promise.all([
+      getVipPlans(),
+      getMyMembership()
+    ])
+    vipPlans.value = plansRes.data
+    membership.value = membershipRes.data
+  } catch (error: any) {
+    toast(error.message || '加载数据失败', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleUpgrade = async (planId: number) => {
+  if (!confirm('确认购买此套餐？')) return
+  try {
+    loading.value = true
+    const orderRes = await createVipOrder(planId)
+    await payOrder(orderRes.data.orderId)
+    toast('购买成功！')
+    await loadData()
+  } catch (error: any) {
+    toast(error.message || '购买失败', 'error')
+  } finally {
+    loading.value = false
+  }
+}
 
 const initChart = () => {
   if (!chartRef.value) return
@@ -86,6 +123,7 @@ const initChart = () => {
 
 onMounted(() => {
   initChart()
+  loadData()
   window.addEventListener('resize', () => chart?.resize())
 })
 
@@ -111,11 +149,11 @@ onUnmounted(() => {
                 <Crown class="w-6 h-6 text-yellow-900" />
                 <span class="font-bold text-yellow-900 tracking-wider">INSPO VIP</span>
               </div>
-              <h2 class="text-4xl font-bold text-white text-shadow">GOLD MEMBER</h2>
+              <h2 class="text-4xl font-bold text-white text-shadow">{{ membershipLevel.toUpperCase() }}</h2>
             </div>
             <div class="text-right">
               <p class="text-yellow-900 font-bold">有效期至</p>
-              <p class="text-white font-mono text-xl">2026.12.31</p>
+              <p class="text-white font-mono text-xl">{{ membershipExpire }}</p>
             </div>
           </div>
 
@@ -172,11 +210,13 @@ onUnmounted(() => {
             </li>
           </ul>
 
-          <button 
+          <button
             class="w-full py-3 rounded-xl font-bold transition-all"
             :class="plan.isPopular ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400' : 'bg-white/10 text-white hover:bg-white/20'"
+            @click="handleUpgrade(plan.id)"
+            :disabled="loading"
           >
-            {{ plan.isPopular ? '立即升级' : '当前版本' }}
+            {{ loading ? '处理中...' : '立即升级' }}
           </button>
         </div>
       </div>

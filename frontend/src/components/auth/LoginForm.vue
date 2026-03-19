@@ -31,30 +31,29 @@ const schema = yup.object({
 // 处理登录
 const handleLogin = async (values: any) => {
   isSubmitting.value = true
-  
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 1000))
 
-  // 模拟验证 (硬编码 admin/admin123)
-  if (values.username === 'admin' && values.password === 'admin123') {
-    authStore.login({
-      username: 'admin',
-      nickname: 'InspoAdmin',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-      level: 'gold',
-      token: 'mock-token-' + Date.now()
-    })
-    router.push('/')
-  } else {
+  try {
+    const success = await authStore.loginWithPassword(values.username, values.password)
+    if (success) {
+      router.push('/')
+    } else {
+      loginAttempts.value++
+      if (loginAttempts.value >= 5) {
+        showCaptcha.value = true
+        captchaRef.value?.refresh()
+      }
+      alert('用户名或密码错误')
+    }
+  } catch (error: any) {
     loginAttempts.value++
     if (loginAttempts.value >= 5) {
       showCaptcha.value = true
       captchaRef.value?.refresh()
     }
-    alert('用户名或密码错误 (试一试: admin / admin123)')
+    alert(error.message || '登录失败，请重试')
+  } finally {
+    isSubmitting.value = false
   }
-  
-  isSubmitting.value = false
 }
 </script>
 
