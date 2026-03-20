@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Search, Heart, MessageSquare, Filter, Zap, ImageIcon, Gamepad2, Tv, X, Share2, MoreHorizontal, Send, UserPlus, UserCheck, Eye, Loader2 } from 'lucide-vue-next'
+import { Search, Heart, MessageSquare, Filter, Zap, ImageIcon, Gamepad2, Tv, X, Share2, MoreHorizontal, Send, UserPlus, UserCheck, Eye, Loader2, Plus, Upload, Tag } from 'lucide-vue-next'
 import GlitchText from '@/components/ui/GlitchText.vue'
 import { exploreApi, type ExploreItem, type ExploreComment } from '@/api/explore'
 import { useAuthStore } from '@/stores/auth'
@@ -40,6 +40,19 @@ const commentTotal = ref(0)
 
 // 筛选面板
 const showFilterPanel = ref(false)
+
+// 发布弹窗
+const showPublishModal = ref(false)
+const publishForm = ref({
+  category: 'ai-art',
+  title: '',
+  description: '',
+  tag: '',
+  coverUrl: '',
+})
+const publishSubmitting = ref(false)
+const coverUploading = ref(false)
+const coverPreview = ref('')
 
 // ==================== 数据加载 ====================
 
@@ -267,6 +280,82 @@ function formatTime(dateStr: string): string {
   return date.toLocaleDateString('zh-CN')
 }
 
+// ==================== 发布 ====================
+
+function openPublish() {
+  if (!authStore.isAuthenticated) {
+    toast.add('请先登录后再发布', 'warning')
+    return
+  }
+  publishForm.value = { category: 'ai-art', title: '', description: '', tag: '', coverUrl: '' }
+  coverPreview.value = ''
+  showPublishModal.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closePublish() {
+  showPublishModal.value = false
+  document.body.style.overflow = ''
+}
+
+async function handleCoverUpload(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    toast.add('请上传图片文件', 'warning')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast.add('图片不能超过 10MB', 'warning')
+    return
+  }
+
+  coverUploading.value = true
+  try {
+    const res = await exploreApi.uploadImage(file)
+    publishForm.value.coverUrl = res.url
+    coverPreview.value = URL.createObjectURL(file)
+    toast.add('封面上传成功', 'success')
+  } catch (e: any) {
+    toast.add(e.message || '上传失败', 'error')
+  } finally {
+    coverUploading.value = false
+  }
+}
+
+async function submitPublish() {
+  const form = publishForm.value
+  if (!form.title.trim()) {
+    toast.add('请输入标题', 'warning')
+    return
+  }
+  if (!form.coverUrl) {
+    toast.add('请上传封面图片', 'warning')
+    return
+  }
+
+  publishSubmitting.value = true
+  try {
+    await exploreApi.publish({
+      category: form.category,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      coverUrl: form.coverUrl,
+      images: JSON.stringify([form.coverUrl]),
+      tag: form.tag.trim() || undefined,
+    })
+    toast.add('发布成功！', 'success')
+    closePublish()
+    loadContent(true)
+  } catch (e: any) {
+    toast.add(e.message || '发布失败', 'error')
+  } finally {
+    publishSubmitting.value = false
+  }
+}
+
 // ==================== 初始化 ====================
 onMounted(() => {
   loadContent(true)
@@ -415,6 +504,139 @@ onMounted(() => {
       <h3 class="text-xl font-bold text-white mb-2">未找到相关内容</h3>
       <p class="text-gray-400">尝试更换关键词或分类</p>
     </div>
+
+    <!-- ==================== Publish FAB Button ==================== -->
+    <button
+      @click="openPublish"
+      class="fixed bottom-8 right-8 z-50 w-14 h-14 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full shadow-lg shadow-neon-blue/30 flex items-center justify-center text-white hover:scale-110 hover:shadow-neon-blue/50 transition-all duration-300 group"
+      title="发布作品"
+    >
+      <Plus class="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" />
+    </button>
+
+    <!-- ==================== Publish Modal ==================== -->
+    <transition name="modal">
+      <div v-if="showPublishModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm overflow-y-auto">
+        <div class="absolute inset-0 -z-10 cursor-pointer" @click="closePublish"></div>
+        <div class="relative w-full max-w-2xl mx-4 my-10 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn">
+          <!-- Header -->
+          <div class="flex items-center justify-between p-6 border-b border-white/5">
+            <h2 class="text-xl font-bold text-white">发布作品</h2>
+            <button @click="closePublish" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- Form -->
+          <div class="p-6 space-y-6">
+            <!-- Category -->
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-3">分类</label>
+              <div class="flex flex-wrap gap-3">
+                <button
+                  v-for="cat in categories.filter(c => c.id !== 'all')"
+                  :key="cat.id"
+                  @click="publishForm.category = cat.id"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm transition-all"
+                  :class="publishForm.category === cat.id
+                    ? 'bg-neon-blue/10 text-neon-blue border-neon-blue/50 font-bold'
+                    : 'bg-slate-800 text-gray-400 border-white/10 hover:border-white/30'"
+                >
+                  <component :is="cat.icon" class="w-4 h-4" />
+                  {{ cat.name }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-2">标题 <span class="text-pink-500">*</span></label>
+              <input
+                v-model="publishForm.title"
+                type="text"
+                maxlength="100"
+                placeholder="给作品起个好名字..."
+                class="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
+              />
+              <p class="mt-1 text-xs text-gray-500 text-right">{{ publishForm.title.length }}/100</p>
+            </div>
+
+            <!-- Cover Image -->
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-2">封面图 <span class="text-pink-500">*</span></label>
+              <div
+                v-if="!coverPreview"
+                class="relative border-2 border-dashed border-white/10 rounded-xl hover:border-neon-blue/30 transition-colors cursor-pointer"
+              >
+                <input type="file" accept="image/*" @change="handleCoverUpload" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                <div class="flex flex-col items-center justify-center py-12 text-gray-500">
+                  <Loader2 v-if="coverUploading" class="w-10 h-10 mb-3 animate-spin text-neon-blue" />
+                  <Upload v-else class="w-10 h-10 mb-3" />
+                  <span class="text-sm">{{ coverUploading ? '上传中...' : '点击上传封面图' }}</span>
+                  <span class="text-xs mt-1 text-gray-600">支持 JPG/PNG/GIF/WebP，10MB 以内</span>
+                </div>
+              </div>
+              <div v-else class="relative rounded-xl overflow-hidden">
+                <img :src="coverPreview" class="w-full h-48 object-cover" />
+                <button
+                  @click="coverPreview = ''; publishForm.coverUrl = ''"
+                  class="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                >
+                  <X class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-2">描述</label>
+              <textarea
+                v-model="publishForm.description"
+                rows="4"
+                maxlength="2000"
+                placeholder="描述你的作品..."
+                class="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 resize-none transition-colors"
+              />
+              <p class="mt-1 text-xs text-gray-500 text-right">{{ publishForm.description.length }}/2000</p>
+            </div>
+
+            <!-- Tag -->
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-2">标签</label>
+              <div class="relative">
+                <Tag class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  v-model="publishForm.tag"
+                  type="text"
+                  maxlength="30"
+                  placeholder="如：Cyberpunk, AI Art..."
+                  class="w-full bg-slate-800 text-white pl-10 pr-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-4 p-6 border-t border-white/5">
+            <button
+              @click="closePublish"
+              class="flex-1 py-3 bg-slate-700 text-gray-300 rounded-xl font-bold hover:bg-slate-600 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              @click="submitPublish"
+              :disabled="publishSubmitting || !publishForm.title.trim() || !publishForm.coverUrl"
+              class="flex-1 py-3 bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Loader2 v-if="publishSubmitting" class="w-5 h-5 animate-spin" />
+              <Send v-else class="w-5 h-5" />
+              {{ publishSubmitting ? '发布中...' : '发布' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- ==================== Post Detail Modal ==================== -->
     <transition name="modal">
