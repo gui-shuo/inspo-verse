@@ -39,6 +39,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    // 直接放行 CORS 预检请求，由 WebMvcConfig#addCorsMappings 统一处理跨域
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+      return true;
+    }
+
     String authorization = request.getHeader("Authorization");
 
     if (!StringUtils.hasText(authorization)) {

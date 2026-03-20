@@ -76,7 +76,8 @@ const handleSaveProfile = async () => {
     }
     const phoneToSend = /\*/.test(formData.phone) ? undefined : formData.phone || undefined
     await updateProfile({ nickname: formData.nickname, bio: formData.bio, phone: phoneToSend })
-    if (authStore.user) authStore.user.nickname = formData.nickname
+    // 从后端重新拉取最新用户信息，同步 store 和 localStorage（确保右上角头像实时更新）
+    await authStore.fetchUserInfo()
     toast.success('个人资料已更新')
   } catch (err: any) {
     toast.error(err?.message || '保存失败，请稍后重试')
