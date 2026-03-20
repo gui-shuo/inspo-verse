@@ -41,7 +41,7 @@ export const uploadCreation = (
  * 切换创作可见性
  */
 export const updateCreationVisibility = (id: number, visibility: 0 | 1) => {
-  return request.put<void>(`/creations/${id}/visibility`, { visibility })
+  return request.patch<void>(`/creations/${id}/visibility`, { visibility })
 }
 
 /**

@@ -27,6 +27,8 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
   private static final String ONLINE_USERS_KEY = "online:users";
   private static final int ONLINE_TTL_SECONDS = 300; // 5分钟内认为在线
+  // Redis 不可用时只打一次日志，避免每请求都刷 WARN
+  private volatile boolean redisAvailable = true;
 
   private void writeUnauthorized(HttpServletResponse response, String message) throws Exception {
     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -70,13 +72,21 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
       request.setAttribute("userId", userId);
       request.setAttribute("username", username);
 
-      // 更新Redis在线用户有序集合
+      // 更新Redis在线用户有序集合（Redis 不可用时降级跳过，不影响主流程）
       try {
         double now = System.currentTimeMillis() / 1000.0;
         redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, String.valueOf(userId), now);
         redisTemplate.opsForZSet().removeRangeByScore(ONLINE_USERS_KEY, 0, now - ONLINE_TTL_SECONDS);
+        // Redis 恢复可用
+        if (!redisAvailable) {
+          redisAvailable = true;
+          log.info("在线用户计数：Redis 已恢复连接");
+        }
       } catch (Exception e) {
-        log.warn("更新在线用户失败: {}", e.getMessage());
+        if (redisAvailable) {
+          redisAvailable = false;
+          log.warn("在线用户计数 Redis 不可用，已降级跳过（Redis 恢复后自动重启）: {}", e.getMessage());
+        }
       }
 
       return true;
