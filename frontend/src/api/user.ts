@@ -1,4 +1,3 @@
-import http from './http'
 import request from './request'
 import type { UserInfo } from './auth'
 
@@ -30,13 +29,12 @@ export const updateProfile = (data: UpdateProfileRequest) => {
 
 /**
  * 上传头像（multipart/form-data）
+ * 注意：不要手动设置 Content-Type，让 Axios 自动处理 boundary
  */
 export const uploadAvatar = (file: File) => {
   const form = new FormData()
   form.append('file', file)
-  return http.post<{ data: { avatarUrl: string } }>('/users/me/avatar', form, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  return request.post<{ avatarUrl: string }>('/users/me/avatar', form)
 }
 
 /**

@@ -68,9 +68,17 @@ const handleSaveProfile = async () => {
   try {
     if (avatarFile.value) {
       isUploadingAvatar.value = true
-      const res = await uploadAvatar(avatarFile.value)
-      const url = (res.data as any)?.data?.avatarUrl
-      if (url && authStore.user) authStore.user.avatar = url
+      const uploadRes = await uploadAvatar(avatarFile.value)
+      if (uploadRes.code !== 0) {
+        isUploadingAvatar.value = false
+        throw new Error(uploadRes.message || '头像上传失败')
+      }
+      const newAvatarUrl = uploadRes.data?.avatarUrl
+      if (newAvatarUrl) {
+        // 用服务器返回的真实 URL 替换 ObjectURL，避免 ObjectURL 被回收后预览消失
+        avatarPreview.value = newAvatarUrl
+        if (authStore.user) authStore.user.avatar = newAvatarUrl
+      }
       avatarFile.value = null
       isUploadingAvatar.value = false
     }
@@ -78,6 +86,8 @@ const handleSaveProfile = async () => {
     await updateProfile({ nickname: formData.nickname, bio: formData.bio, phone: phoneToSend })
     // 从后端重新拉取最新用户信息，同步 store 和 localStorage（确保右上角头像实时更新）
     await authStore.fetchUserInfo()
+    // 同步 avatarPreview 确保 UserCenter 内也显示最新头像
+    if (authStore.user?.avatar) avatarPreview.value = authStore.user.avatar
     toast.success('个人资料已更新')
   } catch (err: any) {
     toast.error(err?.message || '保存失败，请稍后重试')

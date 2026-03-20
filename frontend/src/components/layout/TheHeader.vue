@@ -83,7 +83,12 @@ const dropdownNavItems = [
         <div v-else class="relative group">
           <button class="flex items-center gap-2 outline-none py-1">
             <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-blue to-neon-purple p-[1px]">
-              <img :src="user?.avatar" class="w-full h-full rounded-full object-cover bg-slate-900" alt="Avatar" />
+              <img
+                :src="user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'"
+                class="w-full h-full rounded-full object-cover bg-slate-900"
+                alt="Avatar"
+                @error="(e) => { (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default' }"
+              />
             </div>
             <span class="text-sm font-medium text-white max-w-[100px] truncate hidden sm:block">{{ user?.nickname }}</span>
             <ChevronDown class="w-4 h-4 text-gray-400 group-hover:rotate-180 transition-transform" />
