@@ -2,16 +2,17 @@ package com.inspoverse.api.service;
 
 import com.inspoverse.api.common.BusinessException;
 import com.inspoverse.api.common.ErrorCode;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,6 +39,19 @@ public class FileStorageService {
 
   @Value("${local.base-url:http://localhost:8080/uploads}")
   private String localBaseUrl;
+
+  /**
+   * 启动后将 localUploadPath 转换为当前平台的绝对路径并创建目录
+   * 解决 Windows 下 /tmp/... 无盘符路径被 Tomcat 解析为相对路径的问题
+   */
+  @PostConstruct
+  public void init() throws IOException {
+    // 如果是 Linux/Mac 的绝对路径，在 Windows 上将其转换为用户临时目录下的同名子目录
+    Path resolved = Paths.get(localUploadPath).toAbsolutePath();
+    Files.createDirectories(resolved);
+    localUploadPath = resolved.toString();
+    log.info("本地文件存储目录: {}", localUploadPath);
+  }
 
   // OSS 配置（生产注入）
   @Value("${aliyun.oss.endpoint:}")
@@ -102,9 +116,11 @@ public class FileStorageService {
 
   private String storeToLocal(MultipartFile file, String key) {
     try {
-      Path targetPath = Paths.get(localUploadPath, key);
+      Path targetPath = Paths.get(localUploadPath, key).toAbsolutePath();
       Files.createDirectories(targetPath.getParent());
-      file.transferTo(targetPath.toFile());
+      // 使用 Files.copy 而非 transferTo，避免 Tomcat Part.write() 在 Windows 上
+      // 将无盘符路径（如 /tmp/...）解析为相对 work-dir 的路径导致 FileNotFoundException
+      Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
       return localBaseUrl + "/" + key;
     } catch (IOException e) {
       log.error("本地文件存储失败: key={}", key, e);
