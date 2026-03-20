@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 支付控制器
@@ -96,6 +98,27 @@ public class PaymentController {
   @PostMapping("/notify/wechat")
   public String wechatNotify(@RequestBody String body) {
     return paymentService.handleWechatNotify(body);
+  }
+
+  // ── 获取当前用户的充值订单列表 ─────────────────────────────────────────────────
+  @GetMapping("/orders")
+  public ApiResponse<List<Map<String, Object>>> getMyOrders(HttpServletRequest request) {
+    Long userId = (Long) request.getAttribute("userId");
+    List<PaymentOrder> list = paymentService.getUserOrders(userId);
+    List<Map<String, Object>> result = list.stream().map(o -> {
+      Map<String, Object> m = new HashMap<>();
+      m.put("id",        o.getId());
+      m.put("orderNo",   o.getOrderNo());
+      m.put("orderType", "RECHARGE");
+      m.put("points",    o.getPoints());
+      m.put("amount",    o.getAmount());
+      m.put("payMethod", o.getPayMethod());
+      m.put("status",    o.getStatus());   // PENDING / PAID / EXPIRED / FAILED
+      m.put("createdAt", o.getCreatedAt().toString());
+      m.put("paidAt",    o.getPaidAt() != null ? o.getPaidAt().toString() : null);
+      return m;
+    }).collect(Collectors.toList());
+    return ApiResponse.success(result);
   }
 
   // ── 获取充值套餐列表（无需 JWT） ─────────────────────────────────────────────

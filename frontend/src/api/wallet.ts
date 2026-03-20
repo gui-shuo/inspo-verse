@@ -42,6 +42,25 @@ export const dailySignIn = () => {
 }
 
 /**
+ * 获取当前用户的充值支付订单列表
+ */
+export interface PaymentOrderItem {
+  id: number
+  orderNo: string
+  orderType: 'RECHARGE'
+  points: number
+  amount: number
+  payMethod: 'ALIPAY' | 'WECHAT'
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED'
+  createdAt: string
+  paidAt?: string
+}
+
+export const getMyPaymentOrders = () => {
+  return request.get<PaymentOrderItem[]>('/payment/orders')
+}
+
+/**
  * 充值点数（开发模式直接充值，生产需先走支付）
  * @deprecated 改用 createPaymentOrder / mockConfirmPayment 走完整支付流程
  */

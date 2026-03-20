@@ -198,6 +198,16 @@ public class PaymentService {
   }
 
   /**
+   * 获取用户的充值支付订单列表（最近50条，按创建时间倒序）
+   */
+  public java.util.List<PaymentOrder> getUserOrders(Long userId) {
+    return paymentOrderMapper.selectList(new LambdaQueryWrapper<PaymentOrder>()
+        .eq(PaymentOrder::getUserId, userId)
+        .orderByDesc(PaymentOrder::getCreatedAt)
+        .last("LIMIT 50"));
+  }
+
+  /**
    * 支付宝异步通知回调处理（生产接入后取消注释并实现）
    *
    * @param params 支付宝回调参数（需验签）

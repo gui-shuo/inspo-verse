@@ -13,6 +13,7 @@ import {
 // API imports
 import { getMyProfile, updateProfile, uploadAvatar, changePassword } from '@/api/user'
 import { getMyOrders } from '@/api/vip'
+import { getMyPaymentOrders } from '@/api/wallet'
 import { getMyCreations, uploadCreation, deleteCreation, updateCreationVisibility, downloadCreation, type UserCreation } from '@/api/creation'
 import { getWallet, getTransactions, dailySignIn, type WalletInfo, type PointTransaction } from '@/api/wallet'
 import { getOAuthBindings, getOAuthAuthUrl, unbindOAuth, type OAuthBinding } from '@/api/security'
@@ -98,25 +99,80 @@ const handleSaveProfile = async () => {
 }
 
 // ========================= 我的订单 =========================
-const orders = ref<any[]>([])
+// 统一展示格式：type RECHARGE=充值, VIP=会员订单
+interface UnifiedOrder {
+  id: number
+  orderType: 'RECHARGE' | 'VIP'
+  orderNo: string
+  itemName: string
+  amount: number
+  points?: number
+  payMethod?: string
+  statusCode: 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED'
+  statusText: string
+  createdAt: string
+  paidAt?: string
+}
+
+const orders = ref<UnifiedOrder[]>([])
 const ordersLoading = ref(false)
+
+const normalizeVipOrder = (o: any): UnifiedOrder => {
+  const statusMap: Record<number, 'PENDING' | 'PAID' | 'FAILED'> = { 0: 'PENDING', 1: 'PAID', 2: 'FAILED', 3: 'FAILED' }
+  const textMap: Record<number, string> = { 0: '待支付', 1: '已完成', 2: '已失败', 3: '已退款' }
+  return {
+    id: o.id,
+    orderType: 'VIP',
+    orderNo: o.orderNo,
+    itemName: o.itemName || 'VIP套餐',
+    amount: o.amount,
+    payMethod: o.payChannel,
+    statusCode: statusMap[o.payStatus] ?? 'PENDING',
+    statusText: textMap[o.payStatus] ?? '处理中',
+    createdAt: o.createdAt,
+    paidAt: o.paidAt,
+  }
+}
+
+const normalizePaymentOrder = (o: any): UnifiedOrder => {
+  const textMap: Record<string, string> = { PENDING: '待支付', PAID: '已完成', EXPIRED: '已超时', FAILED: '支付失败' }
+  const methodLabel = o.payMethod === 'WECHAT' ? '微信支付' : '支付宝'
+  return {
+    id: o.id,
+    orderType: 'RECHARGE',
+    orderNo: o.orderNo,
+    itemName: `充値 ${(o.points ?? 0).toLocaleString()} 灵感点数`,
+    amount: o.amount,
+    points: o.points,
+    payMethod: methodLabel,
+    statusCode: o.status as UnifiedOrder['statusCode'],
+    statusText: textMap[o.status] ?? '未知',
+    createdAt: o.createdAt,
+    paidAt: o.paidAt,
+  }
+}
 
 const loadOrders = async () => {
   ordersLoading.value = true
   try {
-    const res = await getMyOrders()
-    if (res.code === 0) orders.value = (res.data || []) as any[]
+    const [vipRes, payRes] = await Promise.all([getMyOrders(), getMyPaymentOrders()])
+    const vipOrders = (vipRes.code === 0 ? vipRes.data || [] : []).map(normalizeVipOrder)
+    const payOrders = (payRes.code === 0 ? payRes.data || [] : []).map(normalizePaymentOrder)
+    // 合并并按创建时间倒序排列
+    orders.value = [...vipOrders, ...payOrders].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   } catch { toast.error('订单加载失败') }
   finally { ordersLoading.value = false }
 }
 
-const orderStatusClass = (s: number) => {
-  if (s === 1) return 'bg-green-500/20 text-green-400'
-  if (s === 2) return 'bg-red-500/20 text-red-400'
-  if (s === 3) return 'bg-gray-500/20 text-gray-400'
-  return 'bg-yellow-500/20 text-yellow-400'
+const orderStatusClass = (code: string) => {
+  if (code === 'PAID')    return 'bg-green-500/20 text-green-400 border-green-500/20'
+  if (code === 'PENDING') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
+  if (code === 'EXPIRED') return 'bg-gray-500/20 text-gray-400 border-gray-500/20'
+  if (code === 'FAILED')  return 'bg-red-500/20 text-red-400 border-red-500/20'
+  return 'bg-slate-600/20 text-slate-400 border-slate-500/20'
 }
-const orderStatusText = (s: number) => (['待支付','已完成','已失败','已退款'][s] ?? '处理中')
 const formatDate = (d: string) => d ? d.replace('T', ' ').substring(0, 16) : ''
 
 // ========================= 我的创作 =========================
@@ -206,7 +262,8 @@ const handleSignIn = async () => {
 
 const handlePaymentPaid = async (pts: number) => {
   toast.success(`充值成功！+${pts.toLocaleString()} 灵感点数已到账`)
-  await loadWallet()
+  // 同时刷新钱包余额和订单列表（无论当前在哪个 tab 都同步刷新）
+  await Promise.all([loadWallet(), loadOrders()])
 }
 
 const formattedBalance = computed(() => wallet.value ? wallet.value.balance.toLocaleString() : '0')
@@ -374,32 +431,61 @@ onMounted(async () => {
         </div>
 
         <!-- 我的订单 -->
-        <div v-else-if="activeTab === 'orders'" class="bg-slate-800 rounded-2xl p-8 border border-white/5">
-          <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Package class="w-5 h-5 text-neon-purple" /> 订单记录
-          </h3>
+        <div v-else-if="activeTab === 'orders'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+              <Package class="w-5 h-5 text-neon-purple" /> 订单记录
+            </h3>
+            <button @click="loadOrders" class="text-sm text-gray-400 hover:text-neon-blue flex items-center gap-1 transition-colors">
+              <RefreshCw class="w-4 h-4" /> 刷新
+            </button>
+          </div>
           <div v-if="ordersLoading" class="flex justify-center py-12">
             <div class="animate-spin w-6 h-6 border-2 border-neon-purple border-t-transparent rounded-full"></div>
           </div>
-          <div v-else-if="orders.length === 0" class="py-16 text-center text-gray-500">
+          <div v-else-if="orders.length === 0" class="py-16 text-center text-gray-500 bg-slate-800 rounded-2xl border border-white/5">
             <Package class="w-12 h-12 mx-auto mb-3 opacity-30" /><p>暂无订单记录</p>
           </div>
           <div v-else class="space-y-3">
-            <div v-for="order in orders" :key="order.id"
-              class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center shrink-0">
-                  <Package class="w-6 h-6 text-gray-400" />
-                </div>
-                <div>
-                  <h4 class="font-bold text-white">{{ order.itemName || '套餐订单' }}</h4>
-                  <p class="text-xs text-gray-500">{{ order.orderNo }} • {{ formatDate(order.createdAt) }}</p>
-                </div>
+            <div v-for="order in orders" :key="order.orderType + order.id"
+              class="flex items-center justify-between p-4 bg-slate-800 rounded-2xl border border-white/5 hover:border-white/10 transition-colors gap-4">
+              <!-- 图标 -->
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-lg"
+                :class="order.orderType === 'RECHARGE'
+                  ? (order.payMethod === '微信支付' ? 'bg-[#07C160]/15' : 'bg-[#1677FF]/15')
+                  : 'bg-yellow-500/15'">
+                <span v-if="order.orderType === 'RECHARGE'">
+                  {{ order.payMethod === '微信支付' ? '💬' : '💳' }}
+                </span>
+                <span v-else>👑</span>
               </div>
-              <div class="text-right shrink-0 ml-4">
-                <p class="font-bold text-neon-blue">¥ {{ order.amount }}</p>
-                <span class="text-xs px-2 py-0.5 rounded-full" :class="orderStatusClass(order.payStatus)">
-                  {{ orderStatusText(order.payStatus) }}
+              <!-- 主信息 -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <h4 class="font-bold text-white text-sm truncate">{{ order.itemName }}</h4>
+                  <!-- 类型小标 -->
+                  <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium"
+                    :class="order.orderType === 'RECHARGE' ? 'bg-neon-yellow/10 text-neon-yellow' : 'bg-yellow-500/10 text-yellow-400'">
+                    {{ order.orderType === 'RECHARGE' ? '充値' : 'VIP' }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 truncate">
+                  {{ order.orderNo }}
+                  <span v-if="order.payMethod" class="ml-1 text-gray-600">· {{ order.payMethod }}</span>
+                </p>
+                <p class="text-xs text-gray-600 mt-0.5">{{ formatDate(order.createdAt) }}</p>
+              </div>
+              <!-- 金额 + 状态 -->
+              <div class="text-right shrink-0">
+                <p class="font-bold font-mono"
+                  :class="order.orderType === 'RECHARGE' ? 'text-neon-yellow' : 'text-neon-blue'">
+                  {{ order.orderType === 'RECHARGE' ? '+' + (order.points ?? 0).toLocaleString() + ' pts' : '¥' + order.amount }}
+                </p>
+                <p class="text-xs text-gray-500 font-mono mb-1">
+                  {{ order.orderType === 'RECHARGE' ? '¥' + order.amount : '' }}
+                </p>
+                <span class="text-xs px-2 py-0.5 rounded-full border" :class="orderStatusClass(order.statusCode)">
+                  {{ order.statusText }}
                 </span>
               </div>
             </div>
