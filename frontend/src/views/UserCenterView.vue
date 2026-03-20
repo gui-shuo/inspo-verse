@@ -703,12 +703,13 @@ onMounted(async () => {
 
       </div>
     </div>
-  </div>
 
-  <!-- 充值支付弹窗 -->
-  <PaymentModal
-    v-if="showPaymentModal"
-    @close="showPaymentModal = false"
-    @paid="handlePaymentPaid"
-  />
+    <!-- 充值支付弹窗（保持在根 div 内，避免 Fragment 破坏 transition） -->
+    <!-- PaymentModal 内部使用 <Teleport to="body">，实际渲染在 body 层，不影响布局 -->
+    <PaymentModal
+      v-if="showPaymentModal"
+      @close="showPaymentModal = false"
+      @paid="handlePaymentPaid"
+    />
+  </div>
 </template>
