@@ -5,6 +5,12 @@ spring:
   application:
     name: inspo-java-api
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB       # 单文件最大 10MB（头像 ≤5MB，创作 ≤50MB 在业务层校验）
+      max-request-size: 60MB   # 单次请求最大 60MB（创作文件上传）
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/inspo_verse?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true

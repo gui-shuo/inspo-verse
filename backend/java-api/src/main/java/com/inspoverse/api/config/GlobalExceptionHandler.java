@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -35,6 +36,13 @@ public class GlobalExceptionHandler {
         .collect(Collectors.joining("; "));
     log.warn("Validation failed: {}", errors);
     return ApiResponse.failure(ErrorCode.PARAM_ERROR.getCode(), errors);
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  @ResponseStatus(HttpStatus.OK)
+  public ApiResponse<Void> handleMaxUploadSize(MaxUploadSizeExceededException e) {
+    log.warn("Upload size exceeded: {}", e.getMessage());
+    return ApiResponse.failure(ErrorCode.PARAM_ERROR.getCode(), "文件大小超出限制，头像请不超过 5MB，创作文件请不超过 50MB");
   }
 
   @ExceptionHandler(Exception.class)
