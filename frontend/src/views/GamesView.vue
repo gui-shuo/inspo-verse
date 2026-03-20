@@ -75,14 +75,9 @@ const payCountdownText = computed(() => {
 
 const genres = [
   { value: 'all', label: '全部' },
-  { value: 'Open World RPG', label: '开放世界RPG' },
   { value: 'Action RPG', label: '动作RPG' },
   { value: 'Roguelike', label: 'Roguelike' },
-  { value: 'CRPG', label: 'CRPG' },
-  { value: 'Space RPG', label: '太空RPG' },
-  { value: 'Puzzle', label: '益智' },
   { value: 'Strategy', label: '策略' },
-  { value: 'Simulation', label: '模拟' },
   { value: 'Adventure', label: '冒险' },
 ]
 
@@ -257,8 +252,10 @@ const handleImageUpload = async (e: Event, field: 'coverUrl' | 'heroUrl') => {
 }
 
 const handleSubmitPublish = async () => {
-  if (!publishForm.value.title || !publishForm.value.genre) {
-    toast.error('游戏名称和类型为必填项')
+  if (!publishForm.value.title || !publishForm.value.genre || !publishForm.value.description
+      || !publishForm.value.developer || !publishForm.value.releaseDate || !publishForm.value.gameUrl
+      || !publishForm.value.tags || !publishForm.value.coverUrl || !publishForm.value.heroUrl) {
+    toast.error('请填写所有必填项')
     return
   }
   publishLoading.value = true
@@ -437,7 +434,7 @@ onUnmounted(() => {
       <h1 class="text-5xl md:text-7xl font-black mb-4">
         <GlitchText text="GAME HUB" />
       </h1>
-      <p class="text-neon-blue font-bold tracking-[0.2em] animate-pulse">精选全网最硬核的游戏大作</p>
+      <p class="text-neon-blue font-bold tracking-[0.2em] animate-pulse">探索无限可能，畅玩精品游戏世界</p>
     </div>
 
     <!-- 搜索/筛选/操作栏 -->
@@ -476,9 +473,9 @@ onUnmounted(() => {
         </select>
         <button
           @click="openPublishModal"
-          class="px-6 py-2 bg-neon-purple text-white font-bold rounded-full hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all flex items-center gap-2"
+          class="px-6 py-2 bg-neon-purple text-white font-bold rounded-full hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all flex items-center gap-2 whitespace-nowrap"
         >
-          <Plus class="w-4 h-4" /> 发布游戏
+          <Plus class="w-4 h-4 shrink-0" /> 发布游戏
         </button>
       </div>
     </div>
@@ -713,39 +710,39 @@ onUnmounted(() => {
               </div>
 
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-2">游戏介绍</label>
+                <label class="block text-sm font-bold text-gray-300 mb-2">游戏介绍 <span class="text-red-400">*</span></label>
                 <textarea v-model="publishForm.description" rows="4" placeholder="输入游戏描述..."
                   class="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50 resize-none"></textarea>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-2">开发者/作者</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-2">开发者/作者 <span class="text-red-400">*</span></label>
                   <input v-model="publishForm.developer" type="text" placeholder="开发者名称"
                     class="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50" />
                 </div>
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-2">发布日期</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-2">发布日期 <span class="text-red-400">*</span></label>
                   <input v-model="publishForm.releaseDate" type="date"
                     class="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50" />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-2">游戏链接</label>
+                <label class="block text-sm font-bold text-gray-300 mb-2">游戏链接 <span class="text-red-400">*</span></label>
                 <input v-model="publishForm.gameUrl" type="url" placeholder="https://game.example.com"
                   class="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50" />
               </div>
 
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-2">标签（用逗号分隔）</label>
+                <label class="block text-sm font-bold text-gray-300 mb-2">标签（用逗号分隔） <span class="text-red-400">*</span></label>
                 <input v-model="publishForm.tags" type="text" placeholder="RPG, 开放世界, 3A"
                   class="w-full px-4 py-3 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50" />
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-2">封面图</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-2">封面图 <span class="text-red-400">*</span></label>
                   <div class="relative">
                     <input v-model="publishForm.coverUrl" type="text" placeholder="封面图URL（或上传）"
                       class="w-full px-4 py-3 pr-20 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50 text-sm" />
@@ -757,7 +754,7 @@ onUnmounted(() => {
                   <img v-if="publishForm.coverUrl" :src="publishForm.coverUrl" class="mt-2 h-24 rounded-lg object-cover" />
                 </div>
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-2">横版大图</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-2">横版大图 <span class="text-red-400">*</span></label>
                   <div class="relative">
                     <input v-model="publishForm.heroUrl" type="text" placeholder="大图URL（或上传）"
                       class="w-full px-4 py-3 pr-20 bg-slate-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-neon-blue/50 text-sm" />

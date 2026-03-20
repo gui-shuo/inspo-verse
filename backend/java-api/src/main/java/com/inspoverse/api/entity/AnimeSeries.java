@@ -29,6 +29,7 @@ public class AnimeSeries {
   private Integer totalEpisodes;
   private Integer viewCount;
   private Integer subscribeCount;
+  private String linkUrl;
 
   @TableField(fill = FieldFill.INSERT)
   private LocalDateTime createdAt;

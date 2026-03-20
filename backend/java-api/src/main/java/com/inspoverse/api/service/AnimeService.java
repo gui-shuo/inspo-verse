@@ -91,7 +91,8 @@ public class AnimeService {
   public AnimeSeries createAnime(Long userId, String title, String description,
       String coverUrl, String heroUrl, BigDecimal score, int scheduleDay,
       String updateTime, String currentEpisode, String status,
-      boolean isPaid, int freeEpisodes, int priceCents, int totalEpisodes) {
+      boolean isPaid, int freeEpisodes, int priceCents, int totalEpisodes,
+      String linkUrl) {
 
     User user = userMapper.selectById(userId);
     if (user == null) {
@@ -118,6 +119,7 @@ public class AnimeService {
     anime.setFreeEpisodes(freeEpisodes);
     anime.setPriceCents(priceCents);
     anime.setTotalEpisodes(totalEpisodes);
+    anime.setLinkUrl(linkUrl);
     anime.setViewCount(0);
     anime.setSubscribeCount(0);
 
@@ -133,7 +135,8 @@ public class AnimeService {
   public AnimeSeries updateAnime(Long userId, Long animeId, String title, String description,
       String coverUrl, String heroUrl, BigDecimal score, Integer scheduleDay,
       String updateTime, String currentEpisode, String status,
-      Boolean isPaid, Integer freeEpisodes, Integer priceCents, Integer totalEpisodes) {
+      Boolean isPaid, Integer freeEpisodes, Integer priceCents, Integer totalEpisodes,
+      String linkUrl) {
 
     AnimeSeries anime = animeSeriesMapper.selectById(animeId);
     if (anime == null || anime.getIsDeleted() == 1) {
@@ -156,6 +159,7 @@ public class AnimeService {
     if (freeEpisodes != null) anime.setFreeEpisodes(freeEpisodes);
     if (priceCents != null) anime.setPriceCents(priceCents);
     if (totalEpisodes != null) anime.setTotalEpisodes(totalEpisodes);
+    if (StringUtils.hasText(linkUrl)) anime.setLinkUrl(linkUrl);
 
     animeSeriesMapper.updateById(anime);
     log.info("[Anime] 更新番剧 id={} userId={}", animeId, userId);

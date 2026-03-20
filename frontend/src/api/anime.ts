@@ -23,6 +23,7 @@ export interface AnimeItem {
   totalEpisodes: number
   viewCount: number
   subscribeCount: number
+  linkUrl: string
   createdAt: string
   subscribed?: boolean
   purchased?: boolean
@@ -65,18 +66,19 @@ export interface AnimeOrderItem {
 
 export interface CreateAnimeForm {
   title: string
-  description?: string
-  coverUrl?: string
-  heroUrl?: string
-  score?: number
+  description: string
+  coverUrl: string
+  heroUrl: string
+  score: number
   scheduleDay: number
-  updateTime?: string
-  currentEpisode?: string
-  status?: string
-  isPaid?: boolean
-  freeEpisodes?: number
-  priceCents?: number
-  totalEpisodes?: number
+  updateTime: string
+  currentEpisode: string
+  status: string
+  isPaid: boolean
+  freeEpisodes: number
+  priceCents: number
+  totalEpisodes: number
+  linkUrl: string
 }
 
 // ── 番剧列表 ──────────────────────────────────────────────────────────────────

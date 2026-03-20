@@ -285,7 +285,15 @@ function formatTagsForSubmit(tags: string): string {
 }
 
 async function submitProject() {
-  if (!editorForm.value.title.trim()) { toast.warning('请填写项目标题'); return }
+  const f = editorForm.value
+  if (!f.title.trim()) { toast.warning('请填写项目标题'); return }
+  if (!f.category) { toast.warning('请选择分类'); return }
+  if (!f.description.trim()) { toast.warning('请填写项目描述'); return }
+  if (!f.coverUrl) { toast.warning('请上传封面图'); return }
+  if (!f.tags.trim()) { toast.warning('请填写标签'); return }
+  if (!f.version.trim()) { toast.warning('请填写版本号'); return }
+  if (!f.fileSize.trim()) { toast.warning('请填写文件大小'); return }
+  if (!f.fileUrl.trim()) { toast.warning('请填写资源链接'); return }
   editorLoading.value = true
   try {
     const payload = {
@@ -589,11 +597,12 @@ onMounted(() => {
       <div v-if="showEditor" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" @click="showEditor = false"></div>
 
-        <div class="relative w-full max-w-2xl bg-slate-900 rounded-2xl shadow-2xl border border-white/10 p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-          <button @click="showEditor = false" class="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors border border-white/10">
+        <div class="relative w-full max-w-2xl bg-slate-900 rounded-2xl shadow-2xl border border-white/10 max-h-[90vh] flex flex-col">
+          <button @click="showEditor = false" class="absolute top-4 right-4 z-50 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors border border-white/10">
             <X class="w-5 h-5" />
           </button>
 
+          <div class="p-8 overflow-y-auto custom-scrollbar">
           <h2 class="text-2xl font-bold text-white mb-6">
             {{ editorMode === 'create' ? '发布新项目' : '编辑项目' }}
           </h2>
@@ -607,7 +616,7 @@ onMounted(() => {
 
             <!-- 分类 -->
             <div>
-              <label class="block text-sm text-gray-400 mb-1">分类</label>
+              <label class="block text-sm text-gray-400 mb-1">分类 <span class="text-red-400">*</span></label>
               <select v-model="editorForm.category" class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none">
                 <option v-for="cat in categories.filter(c => c.value)" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
               </select>
@@ -615,13 +624,13 @@ onMounted(() => {
 
             <!-- 描述 -->
             <div>
-              <label class="block text-sm text-gray-400 mb-1">项目描述</label>
+              <label class="block text-sm text-gray-400 mb-1">项目描述 <span class="text-red-400">*</span></label>
               <textarea v-model="editorForm.description" rows="4" maxlength="2000" placeholder="详细介绍你的项目..." class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none resize-none"></textarea>
             </div>
 
             <!-- 封面上传 -->
             <div>
-              <label class="block text-sm text-gray-400 mb-1">封面图</label>
+              <label class="block text-sm text-gray-400 mb-1">封面图 <span class="text-red-400">*</span></label>
               <div class="flex items-center gap-4">
                 <div v-if="editorForm.coverUrl" class="w-32 h-20 rounded-lg overflow-hidden border border-white/10">
                   <img :src="editorForm.coverUrl" class="w-full h-full object-cover" />
@@ -636,25 +645,25 @@ onMounted(() => {
 
             <!-- 标签 -->
             <div>
-              <label class="block text-sm text-gray-400 mb-1">标签（逗号分隔）</label>
+              <label class="block text-sm text-gray-400 mb-1">标签（逗号分隔） <span class="text-red-400">*</span></label>
               <input v-model="editorForm.tags" type="text" placeholder="UI, Vue, React" class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none" />
             </div>
 
             <!-- 版本 + 文件大小 -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-400 mb-1">版本号</label>
+                <label class="block text-sm text-gray-400 mb-1">版本号 <span class="text-red-400">*</span></label>
                 <input v-model="editorForm.version" type="text" placeholder="v1.0.0" class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none" />
               </div>
               <div>
-                <label class="block text-sm text-gray-400 mb-1">文件大小</label>
+                <label class="block text-sm text-gray-400 mb-1">文件大小 <span class="text-red-400">*</span></label>
                 <input v-model="editorForm.fileSize" type="text" placeholder="15.4 MB" class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none" />
               </div>
             </div>
 
             <!-- 资源链接 -->
             <div>
-              <label class="block text-sm text-gray-400 mb-1">资源链接</label>
+              <label class="block text-sm text-gray-400 mb-1">资源链接 <span class="text-red-400">*</span></label>
               <input v-model="editorForm.fileUrl" type="text" placeholder="https://github.com/xxx 或其他下载链接" class="w-full px-4 py-2.5 bg-slate-800 border border-white/10 rounded-lg text-white text-sm focus:border-neon-green/50 focus:outline-none" />
             </div>
 
@@ -670,6 +679,7 @@ onMounted(() => {
               </button>
               <button @click="showEditor = false" class="px-6 py-3 bg-slate-800 text-gray-300 rounded-xl hover:bg-slate-700 transition-colors border border-white/10">取消</button>
             </div>
+          </div>
           </div>
         </div>
       </div>

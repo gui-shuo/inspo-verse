@@ -89,7 +89,8 @@ public class AnimeController {
         req.status(), req.isPaid() != null && req.isPaid(),
         req.freeEpisodes() != null ? req.freeEpisodes() : 3,
         req.priceCents() != null ? req.priceCents() : 0,
-        req.totalEpisodes() != null ? req.totalEpisodes() : 0
+        req.totalEpisodes() != null ? req.totalEpisodes() : 0,
+        req.linkUrl()
     );
     return ApiResponse.success(serializeAnime(anime));
   }
@@ -105,7 +106,8 @@ public class AnimeController {
     AnimeSeries anime = animeService.updateAnime(
         userId, id, req.title(), req.description(), req.coverUrl(), req.heroUrl(),
         req.score(), req.scheduleDay(), req.updateTime(), req.currentEpisode(),
-        req.status(), req.isPaid(), req.freeEpisodes(), req.priceCents(), req.totalEpisodes()
+        req.status(), req.isPaid(), req.freeEpisodes(), req.priceCents(), req.totalEpisodes(),
+        req.linkUrl()
     );
     return ApiResponse.success(serializeAnime(anime));
   }
@@ -268,6 +270,7 @@ public class AnimeController {
     m.put("totalEpisodes", a.getTotalEpisodes());
     m.put("viewCount", a.getViewCount());
     m.put("subscribeCount", a.getSubscribeCount());
+    m.put("linkUrl", a.getLinkUrl());
     m.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : null);
     return m;
   }
@@ -282,34 +285,36 @@ public class AnimeController {
 
   record CreateAnimeRequest(
       @NotBlank String title,
-      String description,
-      String coverUrl,
-      String heroUrl,
-      BigDecimal score,
+      @NotBlank String description,
+      @NotBlank String coverUrl,
+      @NotBlank String heroUrl,
+      @NotNull BigDecimal score,
       @Min(0) @Max(6) int scheduleDay,
-      String updateTime,
-      String currentEpisode,
-      String status,
-      Boolean isPaid,
-      Integer freeEpisodes,
-      Integer priceCents,
-      Integer totalEpisodes
+      @NotBlank String updateTime,
+      @NotBlank String currentEpisode,
+      @NotBlank String status,
+      @NotNull Boolean isPaid,
+      @NotNull Integer freeEpisodes,
+      @NotNull Integer priceCents,
+      @NotNull Integer totalEpisodes,
+      @NotBlank String linkUrl
   ) {}
 
   record UpdateAnimeRequest(
-      String title,
-      String description,
-      String coverUrl,
-      String heroUrl,
-      BigDecimal score,
-      Integer scheduleDay,
-      String updateTime,
-      String currentEpisode,
-      String status,
-      Boolean isPaid,
-      Integer freeEpisodes,
-      Integer priceCents,
-      Integer totalEpisodes
+      @NotBlank String title,
+      @NotBlank String description,
+      @NotBlank String coverUrl,
+      @NotBlank String heroUrl,
+      @NotNull BigDecimal score,
+      @NotNull @Min(0) @Max(6) Integer scheduleDay,
+      @NotBlank String updateTime,
+      @NotBlank String currentEpisode,
+      @NotBlank String status,
+      @NotNull Boolean isPaid,
+      @NotNull Integer freeEpisodes,
+      @NotNull Integer priceCents,
+      @NotNull Integer totalEpisodes,
+      @NotBlank String linkUrl
   ) {}
 
   record PayAnimeRequest(

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Calendar, Tv, PlayCircle, Bell, BellOff, X, Star, Plus, Edit3, Trash2, Lock, CreditCard } from 'lucide-vue-next'
+import { Calendar, Tv, PlayCircle, Bell, BellOff, X, Star, Plus, Edit3, Trash2, Lock, CreditCard, Link2 } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -50,7 +50,8 @@ const publishForm = ref<CreateAnimeForm>({
   isPaid: false,
   freeEpisodes: 3,
   priceCents: 0,
-  totalEpisodes: 12
+  totalEpisodes: 12,
+  linkUrl: ''
 })
 const publishing = ref(false)
 
@@ -152,7 +153,8 @@ function openPublishModal() {
     title: '', description: '', coverUrl: '', heroUrl: '',
     score: 8.0, scheduleDay: activeDay.value, updateTime: '23:00',
     currentEpisode: '第 1 话', status: 'ONGOING',
-    isPaid: false, freeEpisodes: 3, priceCents: 0, totalEpisodes: 12
+    isPaid: false, freeEpisodes: 3, priceCents: 0, totalEpisodes: 12,
+    linkUrl: ''
   }
   showPublishModal.value = true
 }
@@ -175,13 +177,25 @@ function openEditModal(anime: AnimeItem, e?: Event) {
     isPaid: anime.isPaid,
     freeEpisodes: anime.freeEpisodes || 3,
     priceCents: anime.priceCents || 0,
-    totalEpisodes: anime.totalEpisodes || 0
+    totalEpisodes: anime.totalEpisodes || 0,
+    linkUrl: anime.linkUrl || ''
   }
   showPublishModal.value = true
 }
 
 async function submitPublish() {
-  if (!publishForm.value.title.trim()) { toast.warning('请填写番剧名称'); return }
+  const f = publishForm.value
+  if (!f.title.trim()) { toast.warning('请填写番剧名称'); return }
+  if (!f.description.trim()) { toast.warning('请填写番剧介绍'); return }
+  if (!f.coverUrl.trim()) { toast.warning('请填写封面图 URL'); return }
+  if (!f.heroUrl.trim()) { toast.warning('请填写详情大图 URL'); return }
+  if (f.score == null || f.score < 0 || f.score > 10) { toast.warning('请填写正确的评分 (0-10)'); return }
+  if (!f.updateTime.trim()) { toast.warning('请填写更新时间'); return }
+  if (!f.currentEpisode.trim()) { toast.warning('请填写当前进度'); return }
+  if (!f.status) { toast.warning('请选择状态'); return }
+  if (f.totalEpisodes == null || f.totalEpisodes < 0) { toast.warning('请填写正确的总集数'); return }
+  if (!f.linkUrl.trim()) { toast.warning('请填写番剧链接 URL'); return }
+  if (f.isPaid && (!f.priceCents || f.priceCents <= 0)) { toast.warning('付费番剧请填写正确的价格'); return }
   publishing.value = true
   try {
     if (editMode.value && editingAnimeId.value) {
@@ -518,6 +532,13 @@ const countdownFormatted = computed(() => {
 
             <p class="text-gray-300 leading-relaxed mb-8 text-lg">{{ selectedAnime.description }}</p>
 
+            <div v-if="selectedAnime.linkUrl" class="mb-6">
+              <a :href="selectedAnime.linkUrl" target="_blank" rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-xl text-sm hover:bg-pink-500/20 transition-colors">
+                <Link2 class="w-4 h-4" /> 番剧链接
+              </a>
+            </div>
+
             <div v-if="selectedAnime.isPaid && !selectedAnime.purchased" class="mb-6 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl">
               <p class="text-yellow-400 font-bold mb-1"><Lock class="w-4 h-4 inline -mt-0.5" /> 付费番剧</p>
               <p class="text-gray-400 text-sm">本番剧为付费内容，可免费试看 {{ selectedAnime.freeEpisodes }} 话。完整观看需支付 ¥{{ (selectedAnime.priceCents / 100).toFixed(2) }}。</p>
@@ -573,48 +594,52 @@ const countdownFormatted = computed(() => {
               <input v-model="publishForm.title" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" placeholder="输入番剧名称" />
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-300 mb-1">番剧介绍</label>
+              <label class="block text-sm font-bold text-gray-300 mb-1">番剧介绍 *</label>
               <textarea v-model="publishForm.description" rows="3" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none resize-none" placeholder="输入番剧简介"></textarea>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">封面图 URL</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">封面图 URL *</label>
                 <input v-model="publishForm.coverUrl" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none text-sm" placeholder="https://..." />
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">详情大图 URL</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">详情大图 URL *</label>
                 <input v-model="publishForm.heroUrl" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none text-sm" placeholder="https://..." />
               </div>
             </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-300 mb-1">番剧链接 URL *</label>
+              <input v-model="publishForm.linkUrl" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none text-sm" placeholder="https://..." />
+            </div>
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">评分 (0-10)</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">评分 (0-10) *</label>
                 <input v-model.number="publishForm.score" type="number" min="0" max="10" step="0.1" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" />
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">更新日</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">更新日 *</label>
                 <select v-model.number="publishForm.scheduleDay" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none">
                   <option v-for="(d, i) in weekDays" :key="i" :value="i">{{ d }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">更新时间</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">更新时间 *</label>
                 <input v-model="publishForm.updateTime" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" placeholder="23:00" />
               </div>
             </div>
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">当前进度</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">当前进度 *</label>
                 <input v-model="publishForm.currentEpisode" type="text" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" placeholder="第 1 话" />
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">状态</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">状态 *</label>
                 <select v-model="publishForm.status" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none">
                   <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-300 mb-1">总集数</label>
+                <label class="block text-sm font-bold text-gray-300 mb-1">总集数 *</label>
                 <input v-model.number="publishForm.totalEpisodes" type="number" min="0" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" />
               </div>
             </div>
@@ -633,12 +658,12 @@ const countdownFormatted = computed(() => {
               </div>
               <div v-if="publishForm.isPaid" class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-1">价格（分）</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-1">价格（分） *</label>
                   <input v-model.number="publishForm.priceCents" type="number" min="1" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" />
                   <p class="text-xs text-gray-500 mt-1">即 ¥{{ ((publishForm.priceCents || 0) / 100).toFixed(2) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-bold text-gray-300 mb-1">免费试看集数</label>
+                  <label class="block text-sm font-bold text-gray-300 mb-1">免费试看集数 *</label>
                   <input v-model.number="publishForm.freeEpisodes" type="number" min="0" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-pink-500 focus:outline-none" />
                 </div>
               </div>
