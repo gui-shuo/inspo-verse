@@ -518,26 +518,26 @@ onMounted(() => {
     <transition name="modal">
       <div v-if="showPublishModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm overflow-y-auto">
         <div class="absolute inset-0 -z-10 cursor-pointer" @click="closePublish"></div>
-        <div class="relative w-full max-w-2xl mx-4 my-10 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn">
+        <div class="relative w-full max-w-lg mx-4 my-6 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn">
           <!-- Header -->
-          <div class="flex items-center justify-between p-6 border-b border-white/5">
-            <h2 class="text-xl font-bold text-white">发布作品</h2>
-            <button @click="closePublish" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <h2 class="text-lg font-bold text-white">发布作品</h2>
+            <button @click="closePublish" class="p-1.5 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
               <X class="w-5 h-5" />
             </button>
           </div>
 
           <!-- Form -->
-          <div class="p-6 space-y-6">
+          <div class="px-5 py-4 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
             <!-- Category -->
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-3">分类</label>
-              <div class="flex flex-wrap gap-3">
+              <label class="block text-xs font-medium text-gray-400 mb-2">分类</label>
+              <div class="flex flex-wrap gap-2">
                 <button
                   v-for="cat in categories.filter(c => c.id !== 'all')"
                   :key="cat.id"
                   @click="publishForm.category = cat.id"
-                  class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm transition-all"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-all"
                   :class="publishForm.category === cat.id
                     ? 'bg-neon-blue/10 text-neon-blue border-neon-blue/50 font-bold'
                     : 'bg-slate-800 text-gray-400 border-white/10 hover:border-white/30'"
@@ -550,34 +550,34 @@ onMounted(() => {
 
             <!-- Title -->
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-2">标题 <span class="text-pink-500">*</span></label>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">标题 <span class="text-pink-500">*</span></label>
               <input
                 v-model="publishForm.title"
                 type="text"
                 maxlength="100"
                 placeholder="给作品起个好名字..."
-                class="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
+                class="w-full bg-slate-800 text-white text-sm px-3 py-2 rounded-lg border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
               />
-              <p class="mt-1 text-xs text-gray-500 text-right">{{ publishForm.title.length }}/100</p>
+              <p class="mt-0.5 text-xs text-gray-500 text-right">{{ publishForm.title.length }}/100</p>
             </div>
 
             <!-- Cover Image -->
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-2">封面图 <span class="text-pink-500">*</span></label>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">封面图 <span class="text-pink-500">*</span></label>
               <div
                 v-if="!coverPreview"
                 class="relative border-2 border-dashed border-white/10 rounded-xl hover:border-neon-blue/30 transition-colors cursor-pointer"
               >
                 <input type="file" accept="image/*" @change="handleCoverUpload" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                <div class="flex flex-col items-center justify-center py-12 text-gray-500">
-                  <Loader2 v-if="coverUploading" class="w-10 h-10 mb-3 animate-spin text-neon-blue" />
-                  <Upload v-else class="w-10 h-10 mb-3" />
-                  <span class="text-sm">{{ coverUploading ? '上传中...' : '点击上传封面图' }}</span>
-                  <span class="text-xs mt-1 text-gray-600">支持 JPG/PNG/GIF/WebP，10MB 以内</span>
+                <div class="flex flex-col items-center justify-center py-6 text-gray-500">
+                  <Loader2 v-if="coverUploading" class="w-8 h-8 mb-2 animate-spin text-neon-blue" />
+                  <Upload v-else class="w-8 h-8 mb-2" />
+                  <span class="text-xs">{{ coverUploading ? '上传中...' : '点击上传封面图' }}</span>
+                  <span class="text-xs mt-0.5 text-gray-600">JPG/PNG/GIF/WebP，10MB 以内</span>
                 </div>
               </div>
-              <div v-else class="relative rounded-xl overflow-hidden">
-                <img :src="coverPreview" class="w-full h-48 object-cover" />
+              <div v-else class="relative rounded-lg overflow-hidden">
+                <img :src="coverPreview" class="w-full h-36 object-cover" />
                 <button
                   @click="coverPreview = ''; publishForm.coverUrl = ''"
                   class="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
@@ -589,48 +589,48 @@ onMounted(() => {
 
             <!-- Description -->
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-2">描述</label>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">描述</label>
               <textarea
                 v-model="publishForm.description"
-                rows="4"
+                rows="3"
                 maxlength="2000"
                 placeholder="描述你的作品..."
-                class="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 resize-none transition-colors"
+                class="w-full bg-slate-800 text-white text-sm px-3 py-2 rounded-lg border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 resize-none transition-colors"
               />
-              <p class="mt-1 text-xs text-gray-500 text-right">{{ publishForm.description.length }}/2000</p>
+              <p class="mt-0.5 text-xs text-gray-500 text-right">{{ publishForm.description.length }}/2000</p>
             </div>
 
             <!-- Tag -->
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-2">标签</label>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">标签</label>
               <div class="relative">
-                <Tag class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Tag class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
                 <input
                   v-model="publishForm.tag"
                   type="text"
                   maxlength="30"
                   placeholder="如：Cyberpunk, AI Art..."
-                  class="w-full bg-slate-800 text-white pl-10 pr-4 py-3 rounded-xl border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
+                  class="w-full bg-slate-800 text-white text-sm pl-9 pr-3 py-2 rounded-lg border border-white/10 focus:border-neon-blue/50 focus:outline-none placeholder-gray-500 transition-colors"
                 />
               </div>
             </div>
           </div>
 
           <!-- Actions -->
-          <div class="flex gap-4 p-6 border-t border-white/5">
+          <div class="flex gap-3 px-5 py-4 border-t border-white/5">
             <button
               @click="closePublish"
-              class="flex-1 py-3 bg-slate-700 text-gray-300 rounded-xl font-bold hover:bg-slate-600 transition-colors"
+              class="flex-1 py-2.5 bg-slate-700 text-gray-300 text-sm rounded-lg font-bold hover:bg-slate-600 transition-colors"
             >
               取消
             </button>
             <button
               @click="submitPublish"
               :disabled="publishSubmitting || !publishForm.title.trim() || !publishForm.coverUrl"
-              class="flex-1 py-3 bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              class="flex-1 py-2.5 bg-gradient-to-r from-neon-blue to-neon-purple text-white text-sm rounded-lg font-bold hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <Loader2 v-if="publishSubmitting" class="w-5 h-5 animate-spin" />
-              <Send v-else class="w-5 h-5" />
+              <Loader2 v-if="publishSubmitting" class="w-4 h-4 animate-spin" />
+              <Send v-else class="w-4 h-4" />
               {{ publishSubmitting ? '发布中...' : '发布' }}
             </button>
           </div>
@@ -644,14 +644,14 @@ onMounted(() => {
         <!-- Backdrop Click Area -->
         <div class="absolute inset-0 -z-10 cursor-pointer" @click="closeDetail"></div>
         <!-- Modal Body -->
-        <div class="relative w-full max-w-6xl my-4 md:my-10 mx-4 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn flex flex-col md:flex-row h-fit min-h-[60vh]">
+        <div class="relative w-full max-w-4xl my-4 md:my-8 mx-4 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn flex flex-col md:flex-row h-fit max-h-[85vh]">
           <!-- Close Button -->
           <button @click="closeDetail" class="absolute top-4 right-4 z-50 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors border border-white/10">
             <X class="w-6 h-6" />
           </button>
           <!-- Left: Image -->
-          <div class="w-full md:w-2/3 bg-black flex items-center justify-center relative group">
-            <img :src="selectedPost.image" class="w-full h-auto object-contain max-h-none" />
+          <div class="w-full md:w-3/5 bg-black flex items-center justify-center relative group overflow-hidden">
+            <img :src="selectedPost.image" class="w-full h-auto object-contain max-h-[85vh]" />
             <div class="absolute bottom-4 right-4 flex gap-2 opacity-100 transition-opacity">
               <button @click="shareContent" class="p-2 bg-black/50 hover:bg-black/70 backdrop-blur rounded-lg text-white" title="分享">
                 <Share2 class="w-5 h-5"/>
@@ -667,12 +667,12 @@ onMounted(() => {
             </div>
           </div>
           <!-- Right: Info -->
-          <div class="w-full md:w-1/3 bg-slate-800 flex flex-col border-l border-white/5">
+          <div class="w-full md:w-2/5 bg-slate-800 flex flex-col border-l border-white/5">
             <!-- Content -->
-            <div class="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 p-5 overflow-y-auto custom-scrollbar">
               <!-- Author -->
-              <div class="flex items-center gap-3 mb-6">
-                <img :src="selectedPost.author.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + selectedPost.author.username" class="w-10 h-10 rounded-full border border-white/20" />
+              <div class="flex items-center gap-2.5 mb-5">
+                <img :src="selectedPost.author.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + selectedPost.author.username" class="w-9 h-9 rounded-full border border-white/20" />
                 <div>
                   <h4 class="text-white font-bold">{{ selectedPost.author.nickname || selectedPost.author.username }}</h4>
                   <p class="text-xs text-gray-400">{{ formatTime(selectedPost.createdAt) }}</p>
@@ -689,15 +689,15 @@ onMounted(() => {
                   {{ selectedPost.isFollowed ? '已关注' : '关注' }}
                 </button>
               </div>
-              <h2 class="text-2xl font-bold text-white mb-4 leading-tight">{{ selectedPost.title }}</h2>
+              <h2 class="text-xl font-bold text-white mb-3 leading-tight">{{ selectedPost.title }}</h2>
               <p class="text-gray-300 leading-relaxed whitespace-pre-line">{{ selectedPost.description }}</p>
-              <div class="mt-6 flex flex-wrap gap-2">
+              <div class="mt-4 flex flex-wrap gap-2">
                 <span v-if="selectedPost.tag" class="px-3 py-1 bg-white/5 rounded-lg text-xs text-gray-400">#{{ selectedPost.tag }}</span>
                 <span class="px-3 py-1 bg-white/5 rounded-lg text-xs text-gray-400">#{{ selectedPost.category }}</span>
               </div>
               <!-- Comments Section -->
-              <div class="mt-8 pt-6 border-t border-white/5">
-                <h5 class="text-sm font-bold text-gray-400 mb-4">评论 ({{ commentTotal }})</h5>
+              <div class="mt-6 pt-4 border-t border-white/5">
+                <h5 class="text-sm font-bold text-gray-400 mb-3">评论 ({{ commentTotal }})</h5>
                 <!-- Comment Input -->
                 <div class="flex gap-3 mb-6">
                   <div class="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0 overflow-hidden">
