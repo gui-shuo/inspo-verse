@@ -38,6 +38,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
             "/api/v1/forum/stats",           // 社区统计无需登录
             "/api/v1/payment/packages",      // 套餐列表公开
             "/api/v1/payment/notify/**",     // 支付回调由支付平台调用，无 JWT
+            "/api/v1/anime/schedule",        // 番剧放映表公开
+            "/api/v1/anime/hot",             // 热门番剧公开
+            "/api/v1/anime/notify/**",       // 番剧支付回调
+            "/api/v1/games/notify/**",       // 游戏购买支付回调
             "/actuator/**"
             // 论坛帖子/评论的 GET 读取在拦截器内处理为可选认证，
             // 避免把整个路径从POST写操作也一起排除进而（userId=null）导致数据库报错

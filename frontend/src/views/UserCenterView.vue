@@ -14,6 +14,8 @@ import {
 import { getMyProfile, updateProfile, uploadAvatar, changePassword } from '@/api/user'
 import { getMyOrders } from '@/api/vip'
 import { getMyPaymentOrders } from '@/api/wallet'
+import { getMyAnimeOrders } from '@/api/anime'
+import { getMyGameOrders } from '@/api/game'
 import { getMyCreations, uploadCreation, deleteCreation, updateCreationVisibility, downloadCreation, type UserCreation } from '@/api/creation'
 import { getWallet, getTransactions, dailySignIn, type WalletInfo, type PointTransaction } from '@/api/wallet'
 import { getOAuthBindings, getOAuthAuthUrl, unbindOAuth, type OAuthBinding } from '@/api/security'
@@ -102,7 +104,7 @@ const handleSaveProfile = async () => {
 // 统一展示格式：type RECHARGE=充值, VIP=会员订单
 interface UnifiedOrder {
   id: number
-  orderType: 'RECHARGE' | 'VIP'
+  orderType: 'RECHARGE' | 'VIP' | 'ANIME' | 'GAME'
   orderNo: string
   itemName: string
   amount: number
@@ -136,14 +138,48 @@ const normalizeVipOrder = (o: any): UnifiedOrder => {
 
 const normalizePaymentOrder = (o: any): UnifiedOrder => {
   const textMap: Record<string, string> = { PENDING: '待支付', PAID: '已完成', EXPIRED: '已超时', FAILED: '支付失败' }
-  const methodLabel = o.payMethod === 'WECHAT' ? '微信支付' : '支付宝'
+  const methodLabel = o.payMethod === 'WECHAT' ? '微信支付' : o.payMethod === 'ALIPAY' ? '支付宝' : o.payMethod || ''
   return {
     id: o.id,
-    orderType: 'RECHARGE',
+    orderType: o.orderType === 'VIP' ? 'VIP' : 'RECHARGE',
     orderNo: o.orderNo,
-    itemName: `充値 ${(o.points ?? 0).toLocaleString()} 灵感点数`,
+    itemName: o.orderType === 'VIP' ? 'VIP会员订阅' : `充値 ${(o.points ?? 0).toLocaleString()} 灵感点数`,
     amount: o.amount,
     points: o.points,
+    payMethod: methodLabel,
+    statusCode: o.status as UnifiedOrder['statusCode'],
+    statusText: textMap[o.status] ?? '未知',
+    createdAt: o.createdAt,
+    paidAt: o.paidAt,
+  }
+}
+
+const normalizeAnimeOrder = (o: any): UnifiedOrder => {
+  const textMap: Record<string, string> = { PENDING: '待支付', PAID: '已完成', EXPIRED: '已超时', FAILED: '支付失败' }
+  const methodLabel = o.payMethod === 'WECHAT' ? '微信支付' : o.payMethod === 'ALIPAY' ? '支付宝' : o.payMethod || ''
+  return {
+    id: o.id,
+    orderType: 'ANIME',
+    orderNo: o.orderNo,
+    itemName: `番剧购买: ${o.animeName || '番剧内容'}`,
+    amount: (o.amountCents ?? 0) / 100,
+    payMethod: methodLabel,
+    statusCode: o.status as UnifiedOrder['statusCode'],
+    statusText: textMap[o.status] ?? '未知',
+    createdAt: o.createdAt,
+    paidAt: o.paidAt,
+  }
+}
+
+const normalizeGameOrder = (o: any): UnifiedOrder => {
+  const textMap: Record<string, string> = { PENDING: '待支付', PAID: '已完成', EXPIRED: '已超时', FAILED: '支付失败' }
+  const methodLabel = o.payMethod === 'WECHAT' ? '微信支付' : o.payMethod === 'ALIPAY' ? '支付宝' : o.payMethod || ''
+  return {
+    id: o.id,
+    orderType: 'GAME',
+    orderNo: o.orderNo,
+    itemName: `游戏购买: ${o.gameTitle || '游戏'}`,
+    amount: (o.amountCents ?? 0) / 100,
     payMethod: methodLabel,
     statusCode: o.status as UnifiedOrder['statusCode'],
     statusText: textMap[o.status] ?? '未知',
@@ -155,11 +191,15 @@ const normalizePaymentOrder = (o: any): UnifiedOrder => {
 const loadOrders = async () => {
   ordersLoading.value = true
   try {
-    const [vipRes, payRes] = await Promise.all([getMyOrders(), getMyPaymentOrders()])
+    const [vipRes, payRes, animeRes, gameRes] = await Promise.all([getMyOrders(), getMyPaymentOrders(), getMyAnimeOrders(), getMyGameOrders()])
     const vipOrders = (vipRes.code === 0 ? vipRes.data || [] : []).map(normalizeVipOrder)
-    const payOrders = (payRes.code === 0 ? payRes.data || [] : []).map(normalizePaymentOrder)
+    const payOrders = (payRes.code === 0 ? payRes.data || [] : [])
+      .filter((o: any) => o.orderType !== 'VIP') // VIP payment orders already shown via vipOrders
+      .map(normalizePaymentOrder)
+    const animeOrders = (animeRes.code === 0 ? animeRes.data || [] : []).map(normalizeAnimeOrder)
+    const gameOrders = (gameRes.code === 0 ? gameRes.data || [] : []).map(normalizeGameOrder)
     // 合并并按创建时间倒序排列
-    orders.value = [...vipOrders, ...payOrders].sort(
+    orders.value = [...vipOrders, ...payOrders, ...animeOrders, ...gameOrders].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   } catch { toast.error('订单加载失败') }
@@ -465,8 +505,8 @@ onMounted(async () => {
                   <h4 class="font-bold text-white text-sm truncate">{{ order.itemName }}</h4>
                   <!-- 类型小标 -->
                   <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium"
-                    :class="order.orderType === 'RECHARGE' ? 'bg-neon-yellow/10 text-neon-yellow' : 'bg-yellow-500/10 text-yellow-400'">
-                    {{ order.orderType === 'RECHARGE' ? '充値' : 'VIP' }}
+                    :class="order.orderType === 'RECHARGE' ? 'bg-neon-yellow/10 text-neon-yellow' : order.orderType === 'ANIME' ? 'bg-pink-500/10 text-pink-400' : order.orderType === 'GAME' ? 'bg-neon-blue/10 text-neon-blue' : 'bg-yellow-500/10 text-yellow-400'">
+                    {{ order.orderType === 'RECHARGE' ? '充値' : order.orderType === 'ANIME' ? '番剧' : order.orderType === 'GAME' ? '游戏' : 'VIP' }}
                   </span>
                 </div>
                 <p class="text-xs text-gray-500 truncate">

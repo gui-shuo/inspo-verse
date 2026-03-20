@@ -100,7 +100,7 @@ public class PaymentController {
     return paymentService.handleWechatNotify(body);
   }
 
-  // ── 获取当前用户的充值订单列表 ─────────────────────────────────────────────────
+  // ── 获取当前用户的支付订单列表（含充值和VIP） ──────────────────────────────
   @GetMapping("/orders")
   public ApiResponse<List<Map<String, Object>>> getMyOrders(HttpServletRequest request) {
     Long userId = (Long) request.getAttribute("userId");
@@ -109,11 +109,12 @@ public class PaymentController {
       Map<String, Object> m = new HashMap<>();
       m.put("id",        o.getId());
       m.put("orderNo",   o.getOrderNo());
-      m.put("orderType", "RECHARGE");
+      m.put("orderType", o.getBizType() != null ? o.getBizType() : "RECHARGE");
       m.put("points",    o.getPoints());
       m.put("amount",    o.getAmount());
       m.put("payMethod", o.getPayMethod());
-      m.put("status",    o.getStatus());   // PENDING / PAID / EXPIRED / FAILED
+      m.put("status",    o.getStatus());
+      m.put("bizRefId",  o.getBizRefId());
       m.put("createdAt", o.getCreatedAt().toString());
       m.put("paidAt",    o.getPaidAt() != null ? o.getPaidAt().toString() : null);
       return m;

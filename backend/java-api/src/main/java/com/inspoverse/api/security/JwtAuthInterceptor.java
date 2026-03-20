@@ -38,7 +38,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
    * GET 请求未登录也可访问的公开路径（无 token 放行，有 token 则解析并注入 userId）
    */
   private static final Pattern OPTIONAL_AUTH_GET_PATTERN = Pattern.compile(
-      "^/api/v1/(forum/(posts|comments|posts/\\d+)|content/(explore|explore/\\d+|explore/\\d+/comments))$"
+      "^/api/v1/(forum/(posts|comments|posts/\\d+)|content/(explore|explore/\\d+|explore/\\d+/comments)|workshop/(projects|projects/\\d+))$"
   );
 
   private boolean isOptionalAuth(HttpServletRequest request) {

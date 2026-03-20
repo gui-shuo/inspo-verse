@@ -136,21 +136,50 @@ CREATE TABLE IF NOT EXISTS workshop_project (
   project_no VARCHAR(64) NOT NULL COMMENT '项目编号',
   user_id BIGINT NOT NULL COMMENT '创建用户ID',
   title VARCHAR(128) NOT NULL COMMENT '项目标题',
-  description VARCHAR(1024) NULL COMMENT '项目描述',
-  prompt_text TEXT NULL COMMENT '生成提示词',
-  result_content MEDIUMTEXT NULL COMMENT '生成结果',
+  description TEXT NULL COMMENT '项目描述',
   cover_url VARCHAR(512) NULL COMMENT '封面图',
+  tags VARCHAR(512) NULL COMMENT '标签(JSON数组)',
+  version VARCHAR(32) NULL DEFAULT 'v1.0.0' COMMENT '版本号',
+  file_url VARCHAR(512) NULL COMMENT '文件/资源下载URL',
+  file_size VARCHAR(32) NULL COMMENT '文件大小描述(如15.4 MB)',
+  category VARCHAR(32) NULL COMMENT '分类:ui/tool/shader/theme/audio/model/other',
   visibility TINYINT NOT NULL DEFAULT 1 COMMENT '可见性:1公开2私有',
   like_count INT NOT NULL DEFAULT 0 COMMENT '点赞数',
   favorite_count INT NOT NULL DEFAULT 0 COMMENT '收藏数',
+  download_count INT NOT NULL DEFAULT 0 COMMENT '下载/订阅数',
+  rating_sum INT NOT NULL DEFAULT 0 COMMENT '评分总和(实际分x10存储,如4.9分存49)',
+  rating_count INT NOT NULL DEFAULT 0 COMMENT '评分人数',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1正常0下架2审核中',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
   UNIQUE KEY uk_workshop_project_no (project_no),
   KEY idx_workshop_user_created (user_id, created_at),
-  KEY idx_workshop_visibility_hot (visibility, like_count, favorite_count),
+  KEY idx_workshop_visibility_hot (visibility, is_deleted, status, download_count),
+  KEY idx_workshop_category (category, status, is_deleted),
   KEY idx_workshop_deleted_updated (is_deleted, updated_at)
 ) ENGINE=InnoDB COMMENT='创意工坊项目表';
+
+CREATE TABLE IF NOT EXISTS workshop_rating (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '评分ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  project_id BIGINT NOT NULL COMMENT '工坊项目ID',
+  score TINYINT NOT NULL COMMENT '评分1-10',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_wr_user_project (user_id, project_id),
+  KEY idx_wr_project (project_id)
+) ENGINE=InnoDB COMMENT='工坊项目评分表';
+
+CREATE TABLE IF NOT EXISTS workshop_subscription (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '订阅ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  project_id BIGINT NOT NULL COMMENT '工坊项目ID',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY uk_ws_user_project (user_id, project_id),
+  KEY idx_ws_project (project_id),
+  KEY idx_ws_user (user_id)
+) ENGINE=InnoDB COMMENT='工坊项目订阅表';
 
 -- =========================
 -- 社区论坛模块
@@ -370,6 +399,128 @@ INSERT IGNORE INTO vip_plans (plan_code, plan_name, price_cents, duration_days, 
   ('GOLD_YEAR', '黄金年卡', 29900, 365, 2, 1);
 
 -- =========================
+-- 动漫番剧模块
+-- =========================
+CREATE TABLE IF NOT EXISTS anime_series (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '番剧ID',
+  series_no VARCHAR(64) NOT NULL COMMENT '番剧编号',
+  title VARCHAR(256) NOT NULL COMMENT '番剧名称',
+  description TEXT COMMENT '番剧介绍',
+  cover_url VARCHAR(512) COMMENT '封面图URL',
+  hero_url VARCHAR(512) COMMENT '详情页大图URL',
+  author_name VARCHAR(128) COMMENT '发布作者名称',
+  user_id BIGINT NOT NULL COMMENT '发布者用户ID',
+  score DECIMAL(3,1) NOT NULL DEFAULT 0.0 COMMENT '评分(满分10)',
+  schedule_day TINYINT NOT NULL COMMENT '更新日(0=周一 6=周日)',
+  update_time VARCHAR(16) COMMENT '更新时间描述如23:00',
+  current_episode VARCHAR(64) COMMENT '当前进度如第58话',
+  status VARCHAR(32) NOT NULL DEFAULT 'ONGOING' COMMENT 'ONGOING更新中/COMPLETED已完结/UPCOMING即将上映/AIRING长篇连载',
+  is_paid TINYINT NOT NULL DEFAULT 0 COMMENT '是否收费:0免费1收费',
+  free_episodes INT NOT NULL DEFAULT 3 COMMENT '免费试看集数',
+  price_cents INT NOT NULL DEFAULT 0 COMMENT '付费价格(分)',
+  total_episodes INT NOT NULL DEFAULT 0 COMMENT '总集数',
+  view_count INT NOT NULL DEFAULT 0 COMMENT '播放量',
+  subscribe_count INT NOT NULL DEFAULT 0 COMMENT '追番人数',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  UNIQUE KEY uk_anime_series_no (series_no),
+  KEY idx_anime_schedule (schedule_day, is_deleted, status),
+  KEY idx_anime_user (user_id),
+  KEY idx_anime_hot (subscribe_count DESC, score DESC)
+) ENGINE=InnoDB COMMENT='动漫番剧表';
+
+CREATE TABLE IF NOT EXISTS anime_subscriptions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '追番ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  anime_id BIGINT NOT NULL COMMENT '番剧ID',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY uk_anime_sub (user_id, anime_id),
+  KEY idx_anime_sub_anime (anime_id)
+) ENGINE=InnoDB COMMENT='追番订阅表';
+
+CREATE TABLE IF NOT EXISTS anime_orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '番剧订单ID',
+  order_no VARCHAR(64) NOT NULL COMMENT '订单号',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  anime_id BIGINT NOT NULL COMMENT '番剧ID',
+  anime_title VARCHAR(256) COMMENT '番剧名称快照',
+  amount_cents INT NOT NULL COMMENT '支付金额(分)',
+  pay_method VARCHAR(20) NOT NULL COMMENT 'ALIPAY/WECHAT',
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/EXPIRED/FAILED',
+  pay_url VARCHAR(1024) NULL COMMENT '支付链接',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  expired_at DATETIME NOT NULL COMMENT '订单过期时间',
+  paid_at DATETIME NULL COMMENT '实际支付时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  UNIQUE KEY uk_anime_order_no (order_no),
+  KEY idx_anime_order_user (user_id, status),
+  KEY idx_anime_order_anime (anime_id)
+) ENGINE=InnoDB COMMENT='番剧支付订单表';
+
+CREATE TABLE IF NOT EXISTS anime_purchases (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '购买记录ID',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  anime_id BIGINT NOT NULL COMMENT '番剧ID',
+  order_no VARCHAR(64) NOT NULL COMMENT '关联订单号',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY uk_anime_purchase (user_id, anime_id),
+  KEY idx_anime_purchase_user (user_id)
+) ENGINE=InnoDB COMMENT='番剧购买记录表';
+
+-- =========================
+-- 热门游戏模块
+-- =========================
+CREATE TABLE IF NOT EXISTS games (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '游戏ID',
+  game_no VARCHAR(64) NOT NULL COMMENT '游戏编号',
+  user_id BIGINT NOT NULL COMMENT '发布者ID',
+  title VARCHAR(256) NOT NULL COMMENT '游戏名称',
+  genre VARCHAR(64) NOT NULL COMMENT '游戏类型',
+  description TEXT NULL COMMENT '游戏介绍',
+  cover_url VARCHAR(512) NULL COMMENT '封面图URL',
+  hero_url VARCHAR(512) NULL COMMENT '横版大图URL',
+  game_url VARCHAR(1024) NULL COMMENT '游戏链接/嵌入地址',
+  tags VARCHAR(512) NULL COMMENT '标签(JSON数组)',
+  developer VARCHAR(128) NULL COMMENT '开发者/作者',
+  release_date VARCHAR(32) NULL COMMENT '发布日期',
+  rating DECIMAL(3,1) NOT NULL DEFAULT 0.0 COMMENT '评分(满分10)',
+  rating_count INT NOT NULL DEFAULT 0 COMMENT '评分人数',
+  play_count INT NOT NULL DEFAULT 0 COMMENT '游玩次数',
+  favorite_count INT NOT NULL DEFAULT 0 COMMENT '收藏数',
+  is_paid TINYINT NOT NULL DEFAULT 0 COMMENT '是否收费:0免费1收费',
+  price_cents INT NOT NULL DEFAULT 0 COMMENT '价格(分)',
+  trial_minutes INT NOT NULL DEFAULT 0 COMMENT '试玩时长(分钟,0=无限制)',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1上架0下架2审核中',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  UNIQUE KEY uk_game_no (game_no),
+  KEY idx_game_user (user_id),
+  KEY idx_game_status_rating (status, is_deleted, rating DESC),
+  KEY idx_game_genre (genre, status)
+) ENGINE=InnoDB COMMENT='热门游戏表';
+
+CREATE TABLE IF NOT EXISTS game_orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '订单ID',
+  order_no VARCHAR(64) NOT NULL COMMENT '订单号',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  game_id BIGINT NOT NULL COMMENT '游戏ID',
+  game_title VARCHAR(256) NULL COMMENT '游戏名称(冗余)',
+  amount_cents INT NOT NULL COMMENT '支付金额(分)',
+  pay_method VARCHAR(20) NOT NULL COMMENT '支付方式:ALIPAY/WECHAT',
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态:PENDING/PAID/EXPIRED/FAILED',
+  pay_url VARCHAR(1024) NULL COMMENT '支付链接',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  expired_at DATETIME NOT NULL COMMENT '过期时间',
+  paid_at DATETIME NULL COMMENT '支付时间',
+  UNIQUE KEY uk_game_order_no (order_no),
+  KEY idx_go_user_status (user_id, status),
+  KEY idx_go_game (game_id),
+  KEY idx_go_created (created_at)
+) ENGINE=InnoDB COMMENT='游戏购买订单表';
+
+-- =========================
 -- 充值支付订单表
 -- =========================
 CREATE TABLE IF NOT EXISTS payment_orders (
@@ -382,6 +533,8 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   pay_method  VARCHAR(20) NOT NULL COMMENT '支付方式：ALIPAY / WECHAT',
   status      VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING / PAID / EXPIRED / FAILED',
   pay_url     VARCHAR(1024) NULL COMMENT '支付二维码链接或 mock 标识',
+  biz_type    VARCHAR(20) NOT NULL DEFAULT 'RECHARGE' COMMENT '业务类型：RECHARGE（充值）/ VIP（会员开通）',
+  biz_ref_id  VARCHAR(64) NULL COMMENT '关联业务ID（VIP订单号等）',
   created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   expired_at  DATETIME NOT NULL COMMENT '订单过期时间',
   paid_at     DATETIME NULL COMMENT '实际支付时间',
@@ -389,3 +542,71 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   KEY idx_po_user_status (user_id, status),
   KEY idx_po_created (created_at)
 ) ENGINE=InnoDB COMMENT='充值支付订单';
+
+-- =========================
+-- 用户经验等级模块
+-- =========================
+CREATE TABLE IF NOT EXISTS user_experience (
+  id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  user_id     BIGINT NOT NULL UNIQUE COMMENT '用户ID',
+  exp_points  INT NOT NULL DEFAULT 0 COMMENT '当前经验值',
+  level       INT NOT NULL DEFAULT 1 COMMENT '当前等级',
+  level_name  VARCHAR(32) NOT NULL DEFAULT '灵感新手' COMMENT '等级称号',
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  KEY idx_ue_user (user_id)
+) ENGINE=InnoDB COMMENT='用户经验等级表';
+
+CREATE TABLE IF NOT EXISTS exp_records (
+  id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  user_id     BIGINT NOT NULL COMMENT '用户ID',
+  amount      INT NOT NULL COMMENT '经验变动值',
+  source      VARCHAR(32) NOT NULL COMMENT '来源：SIGNIN/POST/AI_CHAT/VIP_BUY/INVITE/CREATION/TASK',
+  description VARCHAR(255) NULL COMMENT '描述',
+  ref_id      VARCHAR(64) NULL COMMENT '关联业务ID',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  KEY idx_er_user_created (user_id, created_at),
+  KEY idx_er_source (source, created_at)
+) ENGINE=InnoDB COMMENT='经验值流水表';
+
+-- =========================
+-- 每日任务模块
+-- =========================
+CREATE TABLE IF NOT EXISTS daily_tasks (
+  id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '任务ID',
+  task_code     VARCHAR(32) NOT NULL COMMENT '任务编码',
+  task_name     VARCHAR(64) NOT NULL COMMENT '任务名称',
+  description   VARCHAR(255) NULL COMMENT '任务描述',
+  reward_points INT NOT NULL DEFAULT 0 COMMENT '奖励积分',
+  reward_exp    INT NOT NULL DEFAULT 0 COMMENT '奖励经验',
+  daily_limit   INT NOT NULL DEFAULT 1 COMMENT '每日完成次数上限',
+  task_type     VARCHAR(32) NOT NULL DEFAULT 'ACTION' COMMENT '类型：ACTION（需主动完成）/ AUTO（自动检测）',
+  route_path    VARCHAR(128) NULL COMMENT '跳转路径（前端路由）',
+  sort_order    INT NOT NULL DEFAULT 0 COMMENT '排序',
+  status        TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1启用 0禁用',
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY uk_task_code (task_code),
+  KEY idx_dt_status_sort (status, sort_order)
+) ENGINE=InnoDB COMMENT='每日任务定义表';
+
+CREATE TABLE IF NOT EXISTS user_task_progress (
+  id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  user_id     BIGINT NOT NULL COMMENT '用户ID',
+  task_code   VARCHAR(32) NOT NULL COMMENT '任务编码',
+  task_date   DATE NOT NULL COMMENT '任务日期',
+  progress    INT NOT NULL DEFAULT 0 COMMENT '当前完成次数',
+  completed   TINYINT NOT NULL DEFAULT 0 COMMENT '是否全部完成',
+  rewarded    TINYINT NOT NULL DEFAULT 0 COMMENT '是否已领取奖励',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_user_task_date (user_id, task_code, task_date),
+  KEY idx_utp_user_date (user_id, task_date)
+) ENGINE=InnoDB COMMENT='用户每日任务进度表';
+
+-- 初始化每日任务
+INSERT IGNORE INTO daily_tasks (task_code, task_name, description, reward_points, reward_exp, daily_limit, task_type, route_path, sort_order) VALUES
+  ('DAILY_SIGNIN', '每日签到', '完成每日签到', 10, 20, 1, 'ACTION', '/vip', 1),
+  ('POST_CONTENT', '发布一条动态', '在发现频道发布内容', 50, 30, 1, 'AUTO', '/explore', 2),
+  ('INVITE_USER', '邀请新用户', '邀请新用户注册', 100, 50, 5, 'ACTION', '/about', 3),
+  ('USE_AI_DRAW', '使用 AI 绘图', '使用AI助手进行创作', 20, 15, 3, 'AUTO', '/ai', 4),
+  ('FORUM_POST', '发布论坛帖子', '在论坛发布帖子', 30, 25, 1, 'AUTO', '/forum', 5),
+  ('AI_CHAT', '与AI对话', '使用AI助手进行对话', 10, 10, 5, 'AUTO', '/ai', 6);

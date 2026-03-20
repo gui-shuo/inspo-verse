@@ -38,6 +38,12 @@ public class PaymentOrder {
   /** 订单状态：PENDING / PAID / EXPIRED / FAILED */
   private String status;
 
+  /** 业务类型：RECHARGE（充值）/ VIP（会员开通） */
+  private String bizType;
+
+  /** 关联业务ID（VIP订单号等） */
+  private String bizRefId;
+
   /**
    * 支付二维码 URL（或 mock 标识）
    * 生产环境：支付宝 Native 二维码链接 / 微信 Native 二维码链接
