@@ -1,6 +1,7 @@
 package com.inspoverse.api.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.inspoverse.api.common.BusinessException;
 import com.inspoverse.api.common.ErrorCode;
 import com.inspoverse.api.entity.UserCreation;
@@ -70,14 +71,19 @@ public class CreationService {
 
   /**
    * 逻辑删除创作
-   * 注意：必须使用 deleteById 而非手动设置 isDeleted=1 + updateById
-   * 原因：@TableLogic 会将 is_deleted 字段从 UPDATE SET 子句中排除，updateById 不会实际写入 is_deleted=1
+   * 使用 UpdateWrapper 手动执行逻辑删除并设置 updated_at，
+   * 避免 deleteById 生成的 SQL 中 updated_at=null（@TableLogic 逻辑删除不触发 updateFill）
    */
   public void delete(Long userId, Long creationId) {
     // 先验证归属权
     getCreationAndCheckOwner(userId, creationId);
-    // 使用 deleteById，MyBatis-Plus 自动生成 UPDATE ... SET is_deleted=1 WHERE id=? AND is_deleted=0
-    creationMapper.deleteById(creationId);
+    // 手动构造逻辑删除 UPDATE，同时写入 updated_at
+    LambdaUpdateWrapper<UserCreation> wrapper = new LambdaUpdateWrapper<UserCreation>()
+        .eq(UserCreation::getId, creationId)
+        .eq(UserCreation::getIsDeleted, 0)
+        .set(UserCreation::getIsDeleted, 1)
+        .set(UserCreation::getUpdatedAt, LocalDateTime.now());
+    creationMapper.update(null, wrapper);
   }
 
   /**
