@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -43,6 +44,14 @@ public class GlobalExceptionHandler {
   public ApiResponse<Void> handleMaxUploadSize(MaxUploadSizeExceededException e) {
     log.warn("Upload size exceeded: {}", e.getMessage());
     return ApiResponse.failure(ErrorCode.PARAM_ERROR.getCode(), "文件大小超出限制，头像请不超过 5MB，创作文件请不超过 50MB");
+  }
+
+  // favicon.ico 等静态资源 404 不应该以 ERROR 级别记录
+  @ExceptionHandler(NoResourceFoundException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public ApiResponse<Void> handleNoResourceFound(NoResourceFoundException e) {
+    log.debug("静态资源不存在: {}", e.getResourcePath());
+    return ApiResponse.failure(ErrorCode.NOT_FOUND.getCode(), "资源不存在");
   }
 
   @ExceptionHandler(Exception.class)

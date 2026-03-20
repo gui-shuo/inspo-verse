@@ -70,12 +70,14 @@ public class CreationService {
 
   /**
    * 逻辑删除创作
+   * 注意：必须使用 deleteById 而非手动设置 isDeleted=1 + updateById
+   * 原因：@TableLogic 会将 is_deleted 字段从 UPDATE SET 子句中排除，updateById 不会实际写入 is_deleted=1
    */
   public void delete(Long userId, Long creationId) {
-    UserCreation creation = getCreationAndCheckOwner(userId, creationId);
-    creation.setIsDeleted(1);
-    creation.setUpdatedAt(LocalDateTime.now());
-    creationMapper.updateById(creation);
+    // 先验证归属权
+    getCreationAndCheckOwner(userId, creationId);
+    // 使用 deleteById，MyBatis-Plus 自动生成 UPDATE ... SET is_deleted=1 WHERE id=? AND is_deleted=0
+    creationMapper.deleteById(creationId);
   }
 
   /**
