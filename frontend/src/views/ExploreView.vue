@@ -644,7 +644,7 @@ onMounted(() => {
         <!-- Backdrop Click Area -->
         <div class="absolute inset-0 -z-10 cursor-pointer" @click="closeDetail"></div>
         <!-- Modal Body -->
-        <div class="relative w-full max-w-4xl my-4 md:my-8 mx-4 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn flex flex-col md:flex-row h-fit max-h-[85vh]">
+        <div class="relative w-full max-w-4xl mt-20 mb-4 md:mt-20 md:mb-8 mx-4 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate__animated animate__zoomIn flex flex-col md:flex-row h-fit max-h-[80vh]">
           <!-- Close Button -->
           <button @click="closeDetail" class="absolute top-4 right-4 z-50 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors border border-white/10">
             <X class="w-6 h-6" />
