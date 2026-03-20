@@ -5,25 +5,20 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 发现内容实体
+ * 内容评论实体
  */
 @Data
-@TableName("content_items")
-public class ContentItem {
+@TableName("content_comments")
+public class ContentComment {
   @TableId(type = IdType.AUTO)
   private Long id;
 
-  private String contentNo;
+  private Long contentId;
   private Long userId;
-  private String category;
-  private String title;
-  private String description;
-  private String coverUrl;
-  private String images;
-  private String tag;
+  private Long parentCommentId;
+  private Long replyToUserId;
+  private String content;
   private Integer likeCount;
-  private Integer commentCount;
-  private Integer viewCount;
   private Integer status;
 
   @TableField(fill = FieldFill.INSERT)

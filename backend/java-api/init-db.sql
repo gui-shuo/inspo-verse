@@ -208,6 +208,57 @@ CREATE TABLE IF NOT EXISTS forum_interaction (
 ) ENGINE=InnoDB COMMENT='社区互动行为表';
 
 -- =========================
+-- 发现内容模块
+-- =========================
+CREATE TABLE IF NOT EXISTS content_items (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '内容ID',
+  content_no VARCHAR(64) NOT NULL COMMENT '内容编号',
+  user_id BIGINT NOT NULL COMMENT '发布者ID',
+  category VARCHAR(32) NOT NULL COMMENT '分类:ai-art/game/anime',
+  title VARCHAR(256) NOT NULL COMMENT '标题',
+  description TEXT NULL COMMENT '详细描述',
+  cover_url VARCHAR(512) NULL COMMENT '封面图URL',
+  images TEXT NULL COMMENT '图片URL列表(JSON数组)',
+  tag VARCHAR(128) NULL COMMENT '标签',
+  like_count INT NOT NULL DEFAULT 0 COMMENT '点赞数',
+  comment_count INT NOT NULL DEFAULT 0 COMMENT '评论数',
+  view_count INT NOT NULL DEFAULT 0 COMMENT '浏览数',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1正常0下架2审核中',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  UNIQUE KEY uk_content_no (content_no),
+  KEY idx_ci_category_created (category, status, created_at),
+  KEY idx_ci_user_created (user_id, created_at),
+  KEY idx_ci_hot (status, like_count DESC, comment_count DESC, view_count DESC)
+) ENGINE=InnoDB COMMENT='发现内容表';
+
+CREATE TABLE IF NOT EXISTS content_comments (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '评论ID',
+  content_id BIGINT NOT NULL COMMENT '内容ID',
+  user_id BIGINT NOT NULL COMMENT '评论用户ID',
+  parent_comment_id BIGINT NOT NULL DEFAULT 0 COMMENT '父评论ID(0为根评论)',
+  reply_to_user_id BIGINT NULL COMMENT '回复目标用户ID',
+  content TEXT NOT NULL COMMENT '评论内容',
+  like_count INT NOT NULL DEFAULT 0 COMMENT '点赞数',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1正常0删除',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  KEY idx_cc_content_created (content_id, status, created_at),
+  KEY idx_cc_user_created (user_id, created_at)
+) ENGINE=InnoDB COMMENT='内容评论表';
+
+CREATE TABLE IF NOT EXISTS user_follows (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关注ID',
+  follower_id BIGINT NOT NULL COMMENT '关注者ID',
+  following_id BIGINT NOT NULL COMMENT '被关注者ID',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY uk_follow (follower_id, following_id),
+  KEY idx_uf_following (following_id)
+) ENGINE=InnoDB COMMENT='用户关注关系表';
+
+-- =========================
 -- 基础配置模块
 -- =========================
 CREATE TABLE IF NOT EXISTS sys_config (
