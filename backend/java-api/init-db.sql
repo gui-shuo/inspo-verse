@@ -317,3 +317,24 @@ INSERT IGNORE INTO vip_plans (plan_code, plan_name, price_cents, duration_days, 
   ('GOLD_MONTH', '黄金月卡', 3900, 30, 2, 1),
   ('GOLD_QUARTER', '黄金季卡', 9900, 90, 2, 1),
   ('GOLD_YEAR', '黄金年卡', 29900, 365, 2, 1);
+
+-- =========================
+-- 充值支付订单表
+-- =========================
+CREATE TABLE IF NOT EXISTS payment_orders (
+  id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  user_id     BIGINT NOT NULL COMMENT '用户ID',
+  order_no    VARCHAR(64) NOT NULL COMMENT '商户订单号',
+  package_id  VARCHAR(20) NOT NULL COMMENT '充值套餐ID',
+  amount      DECIMAL(10,2) NOT NULL COMMENT '支付金额（元）',
+  points      INT NOT NULL COMMENT '购买灵感点数',
+  pay_method  VARCHAR(20) NOT NULL COMMENT '支付方式：ALIPAY / WECHAT',
+  status      VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING / PAID / EXPIRED / FAILED',
+  pay_url     VARCHAR(1024) NULL COMMENT '支付二维码链接或 mock 标识',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  expired_at  DATETIME NOT NULL COMMENT '订单过期时间',
+  paid_at     DATETIME NULL COMMENT '实际支付时间',
+  UNIQUE KEY uk_order_no (order_no),
+  KEY idx_po_user_status (user_id, status),
+  KEY idx_po_created (created_at)
+) ENGINE=InnoDB COMMENT='充值支付订单';

@@ -14,8 +14,9 @@ import {
 import { getMyProfile, updateProfile, uploadAvatar, changePassword } from '@/api/user'
 import { getMyOrders } from '@/api/vip'
 import { getMyCreations, uploadCreation, deleteCreation, updateCreationVisibility, downloadCreation, type UserCreation } from '@/api/creation'
-import { getWallet, getTransactions, dailySignIn, rechargePoints, type WalletInfo, type PointTransaction } from '@/api/wallet'
+import { getWallet, getTransactions, dailySignIn, type WalletInfo, type PointTransaction } from '@/api/wallet'
 import { getOAuthBindings, getOAuthAuthUrl, unbindOAuth, type OAuthBinding } from '@/api/security'
+import PaymentModal from '@/components/wallet/PaymentModal.vue'
 
 const authStore = useAuthStore()
 const modalStore = useModalStore()
@@ -181,8 +182,7 @@ const wallet = ref<WalletInfo | null>(null)
 const transactions = ref<PointTransaction[]>([])
 const walletLoading = ref(false)
 const isSigningIn = ref(false)
-const isRecharging = ref(false)
-const rechargeAmount = ref(100)
+const showPaymentModal = ref(false)
 
 const loadWallet = async () => {
   walletLoading.value = true
@@ -204,18 +204,9 @@ const handleSignIn = async () => {
   finally { isSigningIn.value = false }
 }
 
-const handleRecharge = async () => {
-  if (rechargeAmount.value < 10) { toast.error('最少充值10点数'); return }
-  isRecharging.value = true
-  try {
-    const res = await rechargePoints(rechargeAmount.value)
-    if (res.code === 0) {
-      if (wallet.value && res.data) wallet.value.balance = res.data.balance
-      toast.success(`充值成功，获得${rechargeAmount.value}灵感点数`)
-      await loadWallet()
-    }
-  } catch (err: any) { toast.error(err?.message || '充值失败') }
-  finally { isRecharging.value = false }
+const handlePaymentPaid = async (pts: number) => {
+  toast.success(`充值成功！+${pts.toLocaleString()} 灵感点数已到账`)
+  await loadWallet()
 }
 
 const formattedBalance = computed(() => wallet.value ? wallet.value.balance.toLocaleString() : '0')
@@ -472,25 +463,38 @@ onMounted(async () => {
           </div>
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 border border-white/10 relative overflow-hidden">
+              <!-- 余额卡片 -->
+              <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-violet-900/50 rounded-2xl p-6 border border-white/10 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none"><Zap class="w-32 h-32 text-neon-yellow" /></div>
-                <p class="text-gray-400 text-sm mb-2">灵感点数 (Inspo Points)</p>
-                <div class="text-4xl font-mono font-bold text-neon-yellow mb-4">{{ formattedBalance }}</div>
-                <div class="flex gap-3 flex-wrap">
+                <!-- 余额 -->
+                <p class="text-gray-400 text-sm mb-1">灵感点数 (Inspo Points)</p>
+                <div class="text-4xl font-mono font-bold text-neon-yellow mb-5 flex items-end gap-2">
+                  {{ formattedBalance }}
+                  <span class="text-sm text-gray-400 font-normal mb-1">pts</span>
+                </div>
+                <!-- 操作按钮 -->
+                <div class="flex flex-col gap-2">
+                  <!-- 签到 -->
                   <button @click="handleSignIn" :disabled="isSigningIn"
-                    class="px-4 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-1">
-                    <Zap class="w-4 h-4 text-neon-yellow" />{{ isSigningIn ? '签到中...' : '每日签到' }}
+                    class="flex items-center gap-2 px-4 py-2 bg-white/8 text-white rounded-xl text-sm hover:bg-white/15 transition-all disabled:opacity-50 border border-white/10 hover:border-white/20 w-fit">
+                    <Zap class="w-4 h-4 text-neon-yellow" />
+                    {{ isSigningIn ? '签到中...' : '每日签到 +50 pts' }}
                   </button>
-                  <div class="flex items-center gap-2">
-                    <input v-model.number="rechargeAmount" type="number" min="10"
-                      class="w-20 bg-slate-900/50 border border-white/20 rounded px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-neon-yellow" placeholder="点数" />
-                    <button @click="handleRecharge" :disabled="isRecharging"
-                      class="px-4 py-2 bg-neon-yellow text-slate-900 font-bold rounded-lg text-sm hover:shadow-lg transition-all disabled:opacity-50">
-                      {{ isRecharging ? '充值中...' : '立即充值' }}
-                    </button>
-                  </div>
+                  <!-- 充值按钮（美化） -->
+                  <button
+                    @click="showPaymentModal = true"
+                    class="group relative overflow-hidden flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold text-slate-900 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] w-fit"
+                    style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 50%, #10b981 100%); box-shadow: 0 4px 20px rgba(250,204,21,0.35);"
+                  >
+                    <!-- 闪光动画层 -->
+                    <span class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] skew-x-[-20deg] transition-transform duration-700 pointer-events-none"></span>
+                    <CreditCard class="w-4 h-4 relative z-10" />
+                    <span class="relative z-10">立即充值</span>
+                    <ArrowUpRight class="w-3.5 h-3.5 relative z-10 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </button>
                 </div>
               </div>
+              <!-- 月度消耗卡片 -->
               <div class="bg-slate-800 rounded-2xl p-6 border border-white/5 flex flex-col justify-center">
                 <div class="flex justify-between items-center mb-4">
                   <span class="text-gray-400 text-sm">本月消耗</span>
@@ -614,4 +618,11 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+
+  <!-- 充值支付弹窗 -->
+  <PaymentModal
+    v-if="showPaymentModal"
+    @close="showPaymentModal = false"
+    @paid="handlePaymentPaid"
+  />
 </template>

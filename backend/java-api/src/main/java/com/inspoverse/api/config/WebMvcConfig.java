@@ -35,11 +35,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         .excludePathPatterns(
             "/api/v1/auth/**",
             "/api/v1/public/**",
-            "/api/v1/forum/posts",
-            "/api/v1/forum/posts/*",
-            "/api/v1/forum/comments",
-            "/api/v1/forum/stats",
+            "/api/v1/forum/stats",           // 社区统计无需登录
+            "/api/v1/payment/packages",      // 套餐列表公开
+            "/api/v1/payment/notify/**",     // 支付回调由支付平台调用，无 JWT
             "/actuator/**"
+            // 论坛帖子/评论的 GET 读取在拦截器内处理为可选认证，
+            // 避免把整个路径从POST写操作也一起排除进而（userId=null）导致数据库报错
         );
   }
 
