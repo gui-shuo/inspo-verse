@@ -279,12 +279,13 @@ public class AdminService {
             vo.put("email", u.getEmail());
             vo.put("phone", u.getPhone());
             vo.put("avatarUrl", u.getAvatarUrl());
-            vo.put("status", u.getStatus() == 1 ? "active" : "banned");
+            vo.put("status", u.getStatus());
             vo.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
             vo.put("lastLoginAt", u.getLastLoginAt() != null ? u.getLastLoginAt().toString() : "");
 
             // 获取角色
             List<String> roles = getUserRoles(u.getId());
+            vo.put("roles", roles);
             String roleStr = "user";
             if (roles.contains("ROLE_ADMIN")) roleStr = "admin";
             else if (roles.contains("ROLE_VIP")) roleStr = "vip";
