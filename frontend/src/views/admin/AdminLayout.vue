@@ -1,30 +1,57 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterView, RouterLink, useRoute } from 'vue-router'
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router'
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot, Film, Gamepad2, Wrench, Crown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { checkAdminAccess } from '@/api/admin'
 
 const isCollapsed = ref(false)
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+const loading = ref(true)
 
 const menuItems = [
   { name: '仪表盘', icon: LayoutDashboard, path: '/admin' },
   { name: '用户管理', icon: Users, path: '/admin/users' },
   { name: '帖子管理', icon: MessageSquare, path: '/admin/posts' },
-  { name: '内容推荐', icon: Image, path: '/admin/explore' },
+  { name: '内容管理', icon: Image, path: '/admin/explore' },
   { name: 'AI 监控', icon: Bot, path: '/admin/ai-monitor' },
   { name: '订单管理', icon: ShoppingBag, path: '/admin/orders' },
+  { name: '番剧管理', icon: Film, path: '/admin/anime' },
+  { name: '游戏管理', icon: Gamepad2, path: '/admin/games' },
+  { name: '工坊管理', icon: Wrench, path: '/admin/workshop' },
+  { name: 'VIP管理', icon: Crown, path: '/admin/vip' },
   { name: '系统设置', icon: Settings, path: '/admin/settings' },
 ]
 
 const handleLogout = () => {
   authStore.logout()
 }
+
+onMounted(async () => {
+  try {
+    const result = await checkAdminAccess()
+    if (!result.isAdmin) {
+      router.replace('/')
+      return
+    }
+  } catch {
+    router.replace('/login')
+    return
+  }
+  loading.value = false
+})
 </script>
 
 <template>
-  <div class="flex h-screen bg-slate-900 text-white overflow-hidden">
+  <div v-if="loading" class="flex h-screen bg-slate-900 items-center justify-center">
+    <div class="text-center">
+      <div class="w-12 h-12 border-4 border-neon-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-gray-400">验证管理员权限...</p>
+    </div>
+  </div>
+  <div v-else class="flex h-screen bg-slate-900 text-white overflow-hidden">
     <!-- Sidebar -->
     <aside 
       class="bg-slate-800 border-r border-white/5 transition-all duration-300 flex flex-col"

@@ -1,17 +1,23 @@
 <script setup lang="ts">
-// 纯 CSS 实现的赛博朋克网格背景 + 漂浮粒子
+import { storeToRefs } from 'pinia'
+import { useAppStore } from '@/stores/index'
+
+const { theme } = storeToRefs(useAppStore())
 </script>
 
 <template>
-  <div class="cyber-bg fixed inset-0 z-0 overflow-hidden pointer-events-none bg-slate-950">
-    <!-- Grid Plane -->
-    <div class="grid-plane"></div>
+  <div
+    class="cyber-bg fixed inset-0 z-0 overflow-hidden pointer-events-none transition-colors duration-500"
+    :class="theme === 'dark' ? 'bg-slate-950' : 'bg-gradient-to-b from-slate-50 to-blue-50'"
+  >
+    <!-- Grid Plane (dark only) -->
+    <div v-if="theme === 'dark'" class="grid-plane"></div>
     
     <!-- Horizon Glow -->
-    <div class="horizon-glow"></div>
+    <div :class="theme === 'dark' ? 'horizon-glow' : 'horizon-glow-light'"></div>
     
     <!-- Optional: Vignette -->
-    <div class="vignette"></div>
+    <div :class="theme === 'dark' ? 'vignette' : 'vignette-light'"></div>
   </div>
 </template>
 
@@ -74,5 +80,29 @@
   pointer-events: none;
   z-index: 10;
   opacity: 0.5;
+}
+
+/* Light theme: remove scanlines */
+:global(.light-theme) .cyber-bg::after {
+  display: none;
+}
+
+/* Light Theme Horizon */
+.horizon-glow-light {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+  filter: blur(60px);
+  opacity: 0.6;
+}
+
+.vignette-light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, rgba(248, 250, 252, 0.4) 100%);
+  pointer-events: none;
 }
 </style>

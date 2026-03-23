@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import LoginForm from '@/components/auth/LoginForm.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
 
+const route = useRoute()
 const isLoginMode = ref(true)
+
+onMounted(() => {
+  if (route.query.mode === 'register') {
+    isLoginMode.value = false
+  }
+})
 
 const switchMode = () => {
   isLoginMode.value = !isLoginMode.value

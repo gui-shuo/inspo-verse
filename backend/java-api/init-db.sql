@@ -398,6 +398,22 @@ INSERT IGNORE INTO vip_plans (plan_code, plan_name, price_cents, duration_days, 
   ('GOLD_QUARTER', '黄金季卡', 9900, 90, 2, 1),
   ('GOLD_YEAR', '黄金年卡', 29900, 365, 2, 1);
 
+-- 初始化系统配置
+INSERT IGNORE INTO sys_config (config_key, config_value, value_type, remark) VALUES
+  ('site_name', 'Inspo-Verse', 'string', '站点名称'),
+  ('site_description', 'AI驱动的灵感社区平台', 'string', '站点描述'),
+  ('maintenance_mode', 'false', 'boolean', '维护模式'),
+  ('announcement', '', 'string', '全站公告'),
+  ('about_content', '## 关于 Inspo-Verse\n\nInspo-Verse 是一个融合了 AI 创意助手、社区论坛、创意工坊的综合性数字文化社区平台。', 'text', '关于我们页面内容'),
+  ('rules_content', '## 社区规范\n\n1. 尊重他人，禁止人身攻击\n2. 禁止发布违法违规内容\n3. 禁止恶意刷屏、灌水\n4. 禁止发布广告、引流信息\n5. 保护原创，尊重版权', 'text', '社区规范页面内容'),
+  ('contact_email', 'support@inspo-verse.com', 'string', '客服邮箱'),
+  ('contact_qq', '123456789', 'string', '客服QQ'),
+  ('contact_wechat', 'inspo_verse', 'string', '客服微信'),
+  ('contact_hours', '周一至周五 9:00-18:00', 'string', '客服工作时间'),
+  ('max_ai_tokens_per_day', '100000', 'number', '每日AI Token上限'),
+  ('enable_registration', 'true', 'boolean', '是否开放注册'),
+  ('default_avatar_url', 'https://api.dicebear.com/7.x/avataaars/svg?seed=default', 'string', '默认头像URL');
+
 -- =========================
 -- 动漫番剧模块
 -- =========================
@@ -611,3 +627,16 @@ INSERT IGNORE INTO daily_tasks (task_code, task_name, description, reward_points
   ('USE_AI_DRAW', '使用 AI 绘图', '使用AI助手进行创作', 20, 15, 3, 'AUTO', '/ai', 4),
   ('FORUM_POST', '发布论坛帖子', '在论坛发布帖子', 30, 25, 1, 'AUTO', '/forum', 5),
   ('AI_CHAT', '与AI对话', '使用AI助手进行对话', 10, 10, 5, 'AUTO', '/ai', 6);
+
+-- =========================
+-- 邮件订阅模块
+-- =========================
+CREATE TABLE IF NOT EXISTS email_subscriptions (
+  id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '订阅ID',
+  email       VARCHAR(255) NOT NULL COMMENT '订阅邮箱',
+  status      TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1订阅中 0已退订',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_email_sub (email),
+  KEY idx_es_status (status)
+) ENGINE=InnoDB COMMENT='邮件订阅表';

@@ -2,6 +2,7 @@
 import { defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/index'
 import TheHeader from '@/components/layout/TheHeader.vue'
 import CyberBackground from '@/components/ui/CyberBackground.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
@@ -11,6 +12,7 @@ import GlobalModal from '@/components/ui/GlobalModal.vue'
 const TheFooter = defineAsyncComponent(() => import('@/components/layout/TheFooter.vue'))
 
 const authStore = useAuthStore()
+const appStore = useAppStore()
 
 // 鼠标光晕效果
 const mouseX = ref(0)
@@ -41,7 +43,9 @@ onUnmounted(() => {
     <div 
       class="pointer-events-none fixed inset-0 z-0 transition-opacity duration-300"
       :style="{
-        background: `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(29, 78, 216, 0.15), transparent 40%)`
+        background: appStore.theme === 'dark'
+          ? `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(29, 78, 216, 0.15), transparent 40%)`
+          : `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(139, 92, 246, 0.06), transparent 40%)`
       }"
     ></div>
 

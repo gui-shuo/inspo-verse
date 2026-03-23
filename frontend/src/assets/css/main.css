@@ -8,24 +8,218 @@
   --secondary-color: #bc13fe;
 }
 
-body {
-  @apply bg-slate-900 text-slate-100 font-sans antialiased;
-  overflow-x: hidden;
+/* ========= Dark Theme (Cyberpunk) - Default ========= */
+.dark-theme,
+:root:not(.light-theme) {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.5);
+  --bg-card-hover: rgba(30, 41, 59, 0.7);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-hover: rgba(0, 243, 255, 0.3);
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --neon-glow: rgba(0, 243, 255, 0.15);
+  --header-bg: rgba(15, 23, 42, 0.8);
+  --footer-bg: #0f172a;
+  --scrollbar-track: #1e293b;
+  --scrollbar-thumb: #475569;
 }
 
-/* Custom Scrollbar */
+/* ========= Light Theme ========= */
+.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(188, 19, 254, 0.3);
+  --input-bg: #ffffff;
+  --input-border: #e2e8f0;
+  --neon-glow: rgba(188, 19, 254, 0.1);
+  --header-bg: rgba(248, 250, 252, 0.9);
+  --footer-bg: #f1f5f9;
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+}
+
+/* Apply theme variables to body */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  @apply font-sans antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ========= Light Theme Overrides ========= */
+.light-theme .bg-slate-900 {
+  background-color: var(--bg-primary) !important;
+}
+
+.light-theme .bg-slate-900\/80 {
+  background-color: var(--header-bg) !important;
+}
+
+.light-theme .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.light-theme .bg-slate-800,
+.light-theme .bg-slate-800\/40,
+.light-theme .bg-slate-800\/50,
+.light-theme .bg-slate-800\/60 {
+  background-color: var(--bg-card) !important;
+}
+
+.light-theme .text-white {
+  color: var(--text-primary) !important;
+}
+
+.light-theme .text-gray-300,
+.light-theme .text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+
+.light-theme .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+.light-theme .border-white\/5,
+.light-theme .border-white\/10,
+.light-theme .border-white\/20 {
+  border-color: var(--border-color) !important;
+}
+
+.light-theme .hover\:bg-white\/5:hover,
+.light-theme .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-theme .hover\:border-white\/40:hover,
+.light-theme .hover\:border-white\/50:hover {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Light theme header */
+.light-theme header {
+  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+/* Light theme cards */
+.light-theme .bg-slate-800\/50 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .hover\:border-neon-purple\/50:hover,
+.light-theme .hover\:border-neon-blue\/30:hover {
+  border-color: var(--border-hover) !important;
+}
+
+/* Light theme forms */
+.light-theme .bg-slate-800 input,
+.light-theme input.bg-slate-800 {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Light theme footer */
+.light-theme footer {
+  background-color: var(--footer-bg) !important;
+}
+
+/* Light theme: hide heavy glow effects */
+.light-theme .bg-neon-blue\/5,
+.light-theme .bg-neon-purple\/5 {
+  opacity: 0.3 !important;
+}
+
+/* Light theme: backgrounds using gradients */
+.light-theme .from-slate-700 {
+  --tw-gradient-from: #e2e8f0 !important;
+}
+
+.light-theme .to-slate-800 {
+  --tw-gradient-to: #cbd5e1 !important;
+}
+
+/* Light theme: input group styling */
+.light-theme .border-slate-700 {
+  border-color: var(--input-border) !important;
+}
+
+/* Light theme: subtle backdrop filters */
+.light-theme .backdrop-blur-xl {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+}
+
+.light-theme .backdrop-blur-md {
+  backdrop-filter: blur(12px) saturate(180%) !important;
+}
+
+/* Light theme: text gradient fallbacks */
+.light-theme .bg-clip-text.text-transparent {
+  background-image: linear-gradient(to right, #0f172a, #475569) !important;
+}
+
+/* Light theme: dropdown menus */
+.light-theme .bg-slate-800 {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+.light-theme .text-red-400 {
+  color: #ef4444 !important;
+}
+
+/* Light theme: cyber background effect */
+.light-theme .pointer-events-none .bg-neon-blue\/5,
+.light-theme .pointer-events-none .bg-neon-purple\/5 {
+  opacity: 0.15 !important;
+}
+
+/* ========= Custom Scrollbar ========= */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-800;
+  background-color: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-600 rounded-full;
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-neon-blue;
+  background-color: var(--primary-color);
+}
+
+/* ========= Cyberpunk Neon Enhancements (Dark only) ========= */
+.dark-theme .neon-glow-text,
+:root:not(.light-theme) .neon-glow-text {
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3), 0 0 40px rgba(0, 243, 255, 0.1);
+}
+
+.dark-theme .neon-border,
+:root:not(.light-theme) .neon-border {
+  box-shadow: 0 0 5px rgba(0, 243, 255, 0.3), inset 0 0 5px rgba(0, 243, 255, 0.1);
+}
+
+/* Smooth transitions for theme switching */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }

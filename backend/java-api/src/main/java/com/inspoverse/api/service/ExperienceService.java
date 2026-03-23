@@ -127,30 +127,60 @@ public class ExperienceService {
   }
 
   /**
-   * 获取成长轨迹（近6个月每月经验增长）
+   * 获取成长轨迹（近12个月累计经验变化 + 等级阈值）
    */
-  public List<Map<String, Object>> getGrowthTrajectory(Long userId) {
-    List<Map<String, Object>> result = new ArrayList<>();
+  public Map<String, Object> getGrowthTrajectory(Long userId) {
+    UserExperience exp = getOrCreate(userId);
     YearMonth now = YearMonth.now();
 
-    for (int i = 5; i >= 0; i--) {
+    // 查询12个月窗口内所有经验记录
+    LocalDateTime windowStart = now.minusMonths(11).atDay(1).atStartOfDay();
+    List<ExpRecord> allRecords = expRecordMapper.selectList(
+        new LambdaQueryWrapper<ExpRecord>()
+            .eq(ExpRecord::getUserId, userId)
+            .ge(ExpRecord::getCreatedAt, windowStart)
+            .orderByAsc(ExpRecord::getCreatedAt));
+
+    // 计算12个月窗口起点时的累计经验
+    int totalInWindow = allRecords.stream().mapToInt(ExpRecord::getAmount).sum();
+    int expAtWindowStart = exp.getExpPoints() - totalInWindow;
+
+    List<Map<String, Object>> points = new ArrayList<>();
+    int runningExp = Math.max(expAtWindowStart, 0);
+
+    for (int i = 11; i >= 0; i--) {
       YearMonth month = now.minusMonths(i);
-      LocalDateTime start = month.atDay(1).atStartOfDay();
-      LocalDateTime end = month.atEndOfMonth().atTime(23, 59, 59);
+      LocalDateTime mStart = month.atDay(1).atStartOfDay();
+      LocalDateTime mEnd = month.atEndOfMonth().atTime(23, 59, 59);
 
-      List<ExpRecord> records = expRecordMapper.selectList(
-          new LambdaQueryWrapper<ExpRecord>()
-              .eq(ExpRecord::getUserId, userId)
-              .between(ExpRecord::getCreatedAt, start, end));
-
-      int monthlyExp = records.stream().mapToInt(ExpRecord::getAmount).sum();
+      int monthlyGain = allRecords.stream()
+          .filter(r -> !r.getCreatedAt().isBefore(mStart) && !r.getCreatedAt().isAfter(mEnd))
+          .mapToInt(ExpRecord::getAmount).sum();
+      runningExp += monthlyGain;
 
       Map<String, Object> point = new HashMap<>();
-      point.put("month", month.getMonthValue() + "月");
+      point.put("year", month.getYear());
+      point.put("month", month.getMonthValue());
+      point.put("label", month.getMonthValue() + "月");
       point.put("monthKey", month.toString());
-      point.put("exp", monthlyExp);
-      result.add(point);
+      point.put("exp", runningExp);
+      point.put("monthlyGain", monthlyGain);
+      points.add(point);
     }
+
+    // 等级阈值信息，用于前端Y轴设定
+    long currentThreshold = LEVEL_THRESHOLDS.getOrDefault(exp.getLevel(), new long[]{0})[0];
+    int nextLevel = exp.getLevel() + 1;
+    long nextThreshold = LEVEL_THRESHOLDS.containsKey(nextLevel)
+        ? LEVEL_THRESHOLDS.get(nextLevel)[0]
+        : currentThreshold;
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("points", points);
+    result.put("currentLevelExp", currentThreshold);
+    result.put("nextLevelExp", nextThreshold);
+    result.put("level", exp.getLevel());
+    result.put("levelName", exp.getLevelName());
     return result;
   }
 

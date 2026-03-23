@@ -147,7 +147,7 @@ public class VipController {
 
   // ─── 成长轨迹 ─────────────────────────────────────────────────────────────
   @GetMapping("/growth")
-  public ApiResponse<List<Map<String, Object>>> getGrowth(HttpServletRequest request) {
+  public ApiResponse<Map<String, Object>> getGrowth(HttpServletRequest request) {
     Long userId = (Long) request.getAttribute("userId");
     return ApiResponse.success(experienceService.getGrowthTrajectory(userId));
   }

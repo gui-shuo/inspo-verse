@@ -9,6 +9,8 @@ export interface User {
   avatar: string
   level: 'normal' | 'silver' | 'gold'
   token: string
+  roles?: string[]
+  isAdmin?: boolean
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -16,12 +18,12 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
 
   const isAuthenticated = computed(() => !!token.value)
+  const isAdmin = computed(() => !!user.value?.isAdmin)
 
   function login(userData: User) {
     user.value = userData
     token.value = userData.token
     localStorage.setItem('token', userData.token)
-    // 模拟从后端获取用户信息并缓存
     localStorage.setItem('user_info', JSON.stringify(userData))
   }
 
@@ -51,7 +53,9 @@ export const useAuthStore = defineStore('auth', () => {
         nickname: userData.nickname,
         avatar: userData.avatarUrl,
         level: 'normal',
-        token: token.value!
+        token: token.value!,
+        roles: userData.roles || [],
+        isAdmin: userData.isAdmin || false
       }
       localStorage.setItem('user_info', JSON.stringify(user.value))
     } catch (error) {
@@ -77,5 +81,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, token, isAuthenticated, login, loginWithPassword, fetchUserInfo, logout, initAuth }
+  return { user, token, isAuthenticated, isAdmin, login, loginWithPassword, fetchUserInfo, logout, initAuth }
 })

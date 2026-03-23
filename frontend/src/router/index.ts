@@ -105,7 +105,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('../views/admin/AdminLayout.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         {
           path: '',
@@ -144,6 +144,30 @@ const router = createRouter({
           meta: { title: '订单管理' }
         },
         {
+          path: 'anime',
+          name: 'admin-anime',
+          component: () => import('../views/admin/AnimeManagement.vue'),
+          meta: { title: '番剧管理' }
+        },
+        {
+          path: 'games',
+          name: 'admin-games',
+          component: () => import('../views/admin/GameManagement.vue'),
+          meta: { title: '游戏管理' }
+        },
+        {
+          path: 'workshop',
+          name: 'admin-workshop',
+          component: () => import('../views/admin/WorkshopManagement.vue'),
+          meta: { title: '工坊管理' }
+        },
+        {
+          path: 'vip',
+          name: 'admin-vip',
+          component: () => import('../views/admin/VipManagement.vue'),
+          meta: { title: 'VIP管理' }
+        },
+        {
           path: 'settings',
           name: 'admin-settings',
           component: () => import('../views/admin/SystemSettings.vue'),
@@ -160,17 +184,41 @@ const router = createRouter({
   ]
 })
 
+// 不需要登录即可访问的白名单路由
+const PUBLIC_ROUTES = ['home', 'login', 'not-found']
+
 router.beforeEach((to, _from, next) => {
   // 设置标题
   document.title = (to.meta.title as string) || 'Inspo-Verse'
   
-  // 简单的权限检查 (配合 AuthStore 使用更佳)
   const token = localStorage.getItem('token')
-  if (to.meta.requiresAuth && !token) {
+  // 非白名单页面，未登录时重定向到登录页
+  if (!PUBLIC_ROUTES.includes(to.name as string) && !token) {
     next('/login')
-  } else {
-    next()
+    return
   }
+
+  // 管理员权限校验
+  if (to.matched.some(record => record.meta.requiresAdmin)) {
+    const userInfoStr = localStorage.getItem('user_info')
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr)
+        if (!userInfo.isAdmin) {
+          next('/')
+          return
+        }
+      } catch {
+        next('/login')
+        return
+      }
+    } else {
+      next('/login')
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

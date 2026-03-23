@@ -17,6 +17,10 @@ export default {
         dark: {
           bg: '#0f172a',
           card: '#1e293b',
+        },
+        light: {
+          bg: '#f8fafc',
+          card: '#ffffff',
         }
       },
       animation: {

@@ -4,21 +4,27 @@ import { useWindowScroll } from '@vueuse/core'
 import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/index'
 import { 
-  User, LogOut, ChevronDown, 
+  User, LogOut, ChevronDown, Sun, Moon,
   Home, Compass, MessageSquare, Bot, Crown,
   Gamepad2, Tv, Palette, Info, FileText, Headphones
 } from 'lucide-vue-next'
 
 const { y } = useWindowScroll()
 const authStore = useAuthStore()
+const appStore = useAppStore()
 // Use storeToRefs to maintain reactivity when destructuring
 const { isAuthenticated, user } = storeToRefs(authStore)
+const { theme } = storeToRefs(appStore)
 
 const headerClass = computed(() => {
-  return y.value > 50 
-    ? 'bg-slate-900/80 backdrop-blur-md shadow-lg border-b border-white/10 py-3' 
-    : 'bg-transparent py-5'
+  if (y.value > 50) {
+    return theme.value === 'dark'
+      ? 'bg-slate-900/80 backdrop-blur-md shadow-lg border-b border-white/10 py-3'
+      : 'bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200 py-3'
+  }
+  return 'bg-transparent py-5'
 })
 
 const handleLogout = () => {
@@ -71,11 +77,21 @@ const dropdownNavItems = [
       </nav>
 
       <div class="flex items-center gap-4">
+        <!-- 主题切换按钮 -->
+        <button
+          @click="appStore.toggleTheme()"
+          class="p-2 rounded-full border border-white/10 hover:bg-white/10 transition-all group"
+          :title="theme === 'dark' ? '切换到亮色主题' : '切换到暗色主题'"
+        >
+          <Sun v-if="theme === 'dark'" class="w-5 h-5 text-yellow-400 group-hover:rotate-45 transition-transform" />
+          <Moon v-else class="w-5 h-5 text-neon-purple group-hover:-rotate-12 transition-transform" />
+        </button>
+
         <template v-if="!isAuthenticated">
           <RouterLink to="/login" class="px-5 py-2 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 transition-all text-sm font-medium">
             登录
           </RouterLink>
-          <RouterLink to="/login" class="px-5 py-2 rounded-full bg-neon-blue/10 text-neon-blue hover:bg-neon-blue/20 transition-all text-sm font-medium">
+          <RouterLink to="/login?mode=register" class="px-5 py-2 rounded-full bg-neon-blue/10 text-neon-blue hover:bg-neon-blue/20 transition-all text-sm font-medium">
             注册
           </RouterLink>
         </template>

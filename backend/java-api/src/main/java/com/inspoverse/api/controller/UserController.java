@@ -2,6 +2,7 @@ package com.inspoverse.api.controller;
 
 import com.inspoverse.api.common.ApiResponse;
 import com.inspoverse.api.entity.User;
+import com.inspoverse.api.service.AdminService;
 import com.inspoverse.api.service.FileStorageService;
 import com.inspoverse.api.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +26,7 @@ import java.util.Map;
 public class UserController {
   private final UserService userService;
   private final FileStorageService fileStorageService;
+  private final AdminService adminService;
 
   /**
    * 获取当前用户信息
@@ -43,6 +46,12 @@ public class UserController {
     result.put("bio", user.getBio() != null ? user.getBio() : "");
     result.put("status", user.getStatus());
     result.put("createdAt", user.getCreatedAt().toString());
+
+    // 返回角色信息
+    List<String> roles = adminService.getUserRoles(userId);
+    result.put("roles", roles);
+    result.put("isAdmin", roles.contains("ROLE_ADMIN"));
+
     return ApiResponse.success(result);
   }
 

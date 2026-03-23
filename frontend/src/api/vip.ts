@@ -44,9 +44,20 @@ export interface VipMembership {
 }
 
 export interface GrowthPoint {
-  month: string
+  year: number
+  month: number
+  label: string
   monthKey: string
   exp: number
+  monthlyGain: number
+}
+
+export interface GrowthData {
+  points: GrowthPoint[]
+  currentLevelExp: number
+  nextLevelExp: number
+  level: number
+  levelName: string
 }
 
 export interface DailyTaskItem {
@@ -122,7 +133,7 @@ export const getMyMembership = () => {
 
 // ─── 成长轨迹 ──────────────────────────────────────────────────────────────
 export const getGrowthTrajectory = () => {
-  return request.get<GrowthPoint[]>('/vip/growth')
+  return request.get<GrowthData>('/vip/growth')
 }
 
 // ─── 每日任务 ──────────────────────────────────────────────────────────────

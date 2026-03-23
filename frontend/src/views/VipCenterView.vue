@@ -7,7 +7,7 @@ import {
   getVipPlans, createVipOrder, getMyMembership,
   getGrowthTrajectory, getDailyTasks, signIn, claimTaskReward,
   getVipPrivileges, queryVipPayStatus, mockConfirmVipPay,
-  type VipPlan, type VipMembership, type GrowthPoint,
+  type VipPlan, type VipMembership, type GrowthData,
   type DailyTaskItem, type VipPrivilege, type VipOrderPaymentResult
 } from '@/api/vip'
 
@@ -27,7 +27,7 @@ let chart: echarts.ECharts | null = null
 
 const vipPlans = ref<VipPlan[]>([])
 const membership = ref<VipMembership | null>(null)
-const growthData = ref<GrowthPoint[]>([])
+const growthData = ref<GrowthData | null>(null)
 const tasks = ref<DailyTaskItem[]>([])
 const privileges = ref<VipPrivilege[]>([])
 const loading = ref(false)
@@ -77,7 +77,6 @@ const userLevel = computed(() => membership.value?.level ?? 1)
 const userLevelName = computed(() => membership.value?.levelName ?? '灵感新手')
 const userExp = computed(() => membership.value?.expPoints ?? 0)
 const nextLevelExp = computed(() => membership.value?.nextLevelExp ?? 100)
-const currentLevelExp = computed(() => membership.value?.currentLevelExp ?? 0)
 const nextLevelName = computed(() => membership.value?.nextLevelName ?? '创意学徒')
 const progressPercent = computed(() => {
   if (membership.value?.isMaxLevel) return 100
@@ -113,7 +112,7 @@ const loadData = async () => {
     ])
     vipPlans.value = plansRes.data || []
     membership.value = membershipRes.data || null
-    growthData.value = growthRes.data || []
+    growthData.value = growthRes.data || null
     tasks.value = tasksRes.data || []
     privileges.value = privilegesRes.data || []
 
@@ -137,7 +136,7 @@ const refreshMembership = async () => {
   try {
     const [res, growthRes] = await Promise.all([getMyMembership(), getGrowthTrajectory()])
     membership.value = res.data || null
-    growthData.value = growthRes.data || []
+    growthData.value = growthRes.data || null
     await nextTick()
     initChart()
   } catch {}
@@ -266,35 +265,88 @@ const initChart = () => {
   if (chart) chart.dispose()
   chart = echarts.init(chartRef.value)
 
-  const months = growthData.value.map(d => d.month)
-  const expValues = growthData.value.map(d => d.exp)
+  const pts = growthData.value?.points || []
+  const nextLevelExp = growthData.value?.nextLevelExp ?? 100
+  const currentLevelExp = growthData.value?.currentLevelExp ?? 0
 
-  const option = {
+  // X轴标签：跨年时显示年份
+  const xLabels: string[] = []
+  let prevYear = 0
+  for (const p of pts) {
+    if (p.year !== prevYear) {
+      xLabels.push(`${String(p.year).slice(2)}年${p.month}月`)
+    } else {
+      xLabels.push(`${p.month}月`)
+    }
+    prevYear = p.year
+  }
+  const expValues = pts.map(p => p.exp)
+
+  // Y轴最大值 = 下一等级经验阈值（至少比数据最大值大）
+  const dataMax = expValues.length > 0 ? Math.max(...expValues) : 0
+  const yMax = Math.max(nextLevelExp, dataMax)
+
+  const option: echarts.EChartsOption = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', formatter: '{b}: {c} 经验' },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const p = params[0]
+        const idx = p.dataIndex
+        const pt = pts[idx]
+        if (!pt) return `${p.name}: ${p.value} 经验`
+        return [
+          `<b>${pt.year}年${pt.month}月</b>`,
+          `累计经验：${pt.exp.toLocaleString()}`,
+          `本月获得：+${pt.monthlyGain.toLocaleString()}`
+        ].join('<br/>')
+      }
+    },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: months.length > 0 ? months : ['1月', '2月', '3月', '4月', '5月', '6月'],
-      axisLine: { lineStyle: { color: '#94a3b8' } }
+      data: xLabels.length > 0 ? xLabels : ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+      axisLine: { lineStyle: { color: '#94a3b8' } },
+      axisLabel: { color: '#94a3b8', fontSize: 11, interval: 0, rotate: xLabels.length > 8 ? 30 : 0 }
     },
     yAxis: {
       type: 'value',
+      max: yMax > 0 ? yMax : undefined,
+      min: 0,
       axisLine: { lineStyle: { color: '#94a3b8' } },
+      axisLabel: {
+        color: '#94a3b8',
+        formatter: (v: number) => v >= 10000 ? (v / 10000).toFixed(1) + 'w' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v)
+      },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
     },
-    series: [{
-      data: expValues.length > 0 ? expValues : [0, 0, 0, 0, 0, 0],
-      type: 'line',
-      smooth: true,
-      lineStyle: { color: '#FFD700', width: 4 },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(255, 215, 0, 0.5)' },
-          { offset: 1, color: 'rgba(255, 215, 0, 0)' }
-        ])
+    series: [
+      {
+        name: '累计经验',
+        data: expValues.length > 0 ? expValues : [0,0,0,0,0,0,0,0,0,0,0,0],
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#FFD700', width: 3 },
+        itemStyle: { color: '#FFD700', borderWidth: 2, borderColor: '#1e293b' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(255, 215, 0, 0.4)' },
+            { offset: 1, color: 'rgba(255, 215, 0, 0)' }
+          ])
+        },
+        markLine: currentLevelExp !== nextLevelExp ? {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { type: 'dashed', color: 'rgba(255,215,0,0.3)', width: 1 },
+          label: { show: true, position: 'insideEndTop', color: '#FFD700', fontSize: 10 },
+          data: [
+            { yAxis: nextLevelExp, label: { formatter: `下一等级 ${nextLevelExp.toLocaleString()}` } }
+          ]
+        } : undefined
       }
-    }]
+    ]
   }
   chart.setOption(option)
 }
