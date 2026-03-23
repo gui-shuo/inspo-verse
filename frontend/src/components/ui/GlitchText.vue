@@ -25,19 +25,19 @@ defineProps<{
   left: 0;
   width: 100%;
   height: 100%;
-  background: #0f172a; /* Match bg color */
+  background: var(--bg-primary, #0f172a);
 }
 
 .glitch::before {
   left: 2px;
-  text-shadow: -1px 0 #00f3ff;
+  text-shadow: -1px 0 var(--glitch-color-1, #00f3ff);
   clip: rect(24px, 550px, 90px, 0);
   animation: glitch-anim-2 3s infinite linear alternate-reverse;
 }
 
 .glitch::after {
   left: -2px;
-  text-shadow: -1px 0 #bc13fe;
+  text-shadow: -1px 0 var(--glitch-color-2, #bc13fe);
   clip: rect(85px, 550px, 140px, 0);
   animation: glitch-anim 2.5s infinite linear alternate-reverse;
 }

@@ -22,7 +22,7 @@ const headerClass = computed(() => {
   if (y.value > 50) {
     return theme.value === 'dark'
       ? 'bg-slate-900/80 backdrop-blur-md shadow-lg border-b border-white/10 py-3'
-      : 'bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200 py-3'
+      : 'bg-[#0c0f1a]/85 backdrop-blur-md shadow-lg shadow-purple-500/5 border-b border-purple-500/10 py-3'
   }
   return 'bg-transparent py-5'
 })

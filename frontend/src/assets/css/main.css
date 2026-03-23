@@ -29,24 +29,33 @@
   --scrollbar-thumb: #475569;
 }
 
-/* ========= Light Theme ========= */
+/* ========= Light Theme (Aurora Prismatic) ========= */
 .light-theme {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.8);
-  --bg-card-hover: rgba(255, 255, 255, 0.95);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(188, 19, 254, 0.3);
-  --input-bg: #ffffff;
-  --input-border: #e2e8f0;
-  --neon-glow: rgba(188, 19, 254, 0.1);
-  --header-bg: rgba(248, 250, 252, 0.9);
-  --footer-bg: #f1f5f9;
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
+  --bg-primary: #0c0f1a;
+  --bg-secondary: #131831;
+  --bg-card: rgba(25, 30, 60, 0.6);
+  --bg-card-hover: rgba(35, 42, 78, 0.7);
+  --text-primary: #e8ecf4;
+  --text-secondary: #a3b1cf;
+  --text-muted: #7889aa;
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(168, 85, 247, 0.4);
+  --input-bg: #1a1f3a;
+  --input-border: #2d3565;
+  --neon-glow: rgba(168, 85, 247, 0.2);
+  --header-bg: rgba(12, 15, 26, 0.85);
+  --footer-bg: #0a0d18;
+  --scrollbar-track: #131831;
+  --scrollbar-thumb: #3b4578;
+  /* Aurora accent colors */
+  --aurora-pink: #f472b6;
+  --aurora-purple: #a855f7;
+  --aurora-blue: #60a5fa;
+  --aurora-teal: #2dd4bf;
+  --aurora-gold: #fbbf24;
+  /* Glitch text colors for aurora */
+  --glitch-color-1: #a855f7;
+  --glitch-color-2: #f472b6;
 }
 
 /* Apply theme variables to body */
@@ -55,10 +64,11 @@ body {
   color: var(--text-primary);
   @apply font-sans antialiased;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ========= Light Theme Overrides ========= */
+/* ========= Light (Aurora) Theme Overrides ========= */
+
+/* Main background */
 .light-theme .bg-slate-900 {
   background-color: var(--bg-primary) !important;
 }
@@ -68,62 +78,113 @@ body {
 }
 
 .light-theme .bg-slate-900\/60 {
-  background-color: rgba(255, 255, 255, 0.85) !important;
+  background-color: rgba(18, 22, 46, 0.75) !important;
 }
 
+/* Card backgrounds — glass over dark */
 .light-theme .bg-slate-800,
 .light-theme .bg-slate-800\/40,
 .light-theme .bg-slate-800\/50,
 .light-theme .bg-slate-800\/60 {
   background-color: var(--bg-card) !important;
+  border: 1px solid rgba(168, 85, 247, 0.08) !important;
 }
 
-.light-theme .text-white {
-  color: var(--text-primary) !important;
+/* Cards with hover glow */
+.light-theme .bg-slate-800\/50 {
+  background: linear-gradient(135deg, rgba(25, 30, 60, 0.5) 0%, rgba(40, 30, 80, 0.4) 100%) !important;
+  border: 1px solid rgba(168, 85, 247, 0.1) !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.05), inset 0 1px 0 rgba(255,255,255,0.03) !important;
 }
 
-.light-theme .text-gray-300,
-.light-theme .text-gray-400 {
-  color: var(--text-secondary) !important;
+/* Neon accent shift: cyan → violet/pink gradient system */
+.light-theme .text-neon-blue {
+  color: #a855f7 !important;
 }
 
-.light-theme .text-gray-500 {
-  color: var(--text-muted) !important;
+.light-theme .text-neon-purple {
+  color: #f472b6 !important;
 }
 
+.light-theme .text-neon-pink {
+  color: #fb923c !important;
+}
+
+.light-theme .bg-neon-blue {
+  background-color: #a855f7 !important;
+}
+
+.light-theme .bg-neon-blue\/10 {
+  background-color: rgba(168, 85, 247, 0.1) !important;
+}
+
+.light-theme .bg-neon-blue\/20 {
+  background-color: rgba(168, 85, 247, 0.2) !important;
+}
+
+.light-theme .hover\:bg-neon-blue\/80:hover {
+  background-color: rgba(168, 85, 247, 0.8) !important;
+}
+
+.light-theme .border-neon-blue\/30 {
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+/* Hover glow: purple aurora instead of cyan */
+.light-theme .hover\:shadow-\[0_0_30px_rgba\(0\,243\,255\,0\.6\)\]:hover {
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), 0 0 60px rgba(244, 114, 182, 0.2) !important;
+}
+
+.light-theme .hover\:border-neon-purple\/50:hover {
+  border-color: rgba(244, 114, 182, 0.4) !important;
+}
+
+.light-theme .hover\:border-neon-blue\/30:hover {
+  border-color: rgba(168, 85, 247, 0.35) !important;
+}
+
+/* Border adjustments */
 .light-theme .border-white\/5,
 .light-theme .border-white\/10,
 .light-theme .border-white\/20 {
-  border-color: var(--border-color) !important;
+  border-color: rgba(168, 85, 247, 0.06) !important;
 }
 
 .light-theme .hover\:bg-white\/5:hover,
 .light-theme .hover\:bg-white\/10:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
+  background-color: rgba(168, 85, 247, 0.08) !important;
 }
 
 .light-theme .hover\:border-white\/40:hover,
 .light-theme .hover\:border-white\/50:hover {
-  border-color: rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(168, 85, 247, 0.2) !important;
 }
 
-/* Light theme header */
+/* Header glass effect with aurora tint */
 .light-theme header {
-  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 30px rgba(168, 85, 247, 0.08);
 }
 
-/* Light theme cards */
-.light-theme .bg-slate-800\/50 {
-  background-color: rgba(255, 255, 255, 0.7) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+/* Logo gradient in aurora mode */
+.light-theme .bg-gradient-to-br.from-neon-blue.to-neon-purple {
+  background-image: linear-gradient(to bottom right, #a855f7, #f472b6) !important;
 }
 
-.light-theme .hover\:border-neon-purple\/50:hover,
-.light-theme .hover\:border-neon-blue\/30:hover {
-  border-color: var(--border-hover) !important;
+/* Text gradient for Inspo-Verse brand */
+.light-theme .bg-clip-text.text-transparent {
+  background-image: linear-gradient(to right, #e8ecf4, #a3b1cf) !important;
 }
 
-/* Light theme forms */
+/* Card icon gradient backgrounds */
+.light-theme .from-slate-700 {
+  --tw-gradient-from: #1e2450 !important;
+}
+
+.light-theme .to-slate-800 {
+  --tw-gradient-to: #151a38 !important;
+}
+
+/* Form inputs */
 .light-theme .bg-slate-800 input,
 .light-theme input.bg-slate-800 {
   background-color: var(--input-bg) !important;
@@ -131,60 +192,80 @@ body {
   color: var(--text-primary) !important;
 }
 
-/* Light theme footer */
-.light-theme footer {
-  background-color: var(--footer-bg) !important;
-}
-
-/* Light theme: hide heavy glow effects */
-.light-theme .bg-neon-blue\/5,
-.light-theme .bg-neon-purple\/5 {
-  opacity: 0.3 !important;
-}
-
-/* Light theme: backgrounds using gradients */
-.light-theme .from-slate-700 {
-  --tw-gradient-from: #e2e8f0 !important;
-}
-
-.light-theme .to-slate-800 {
-  --tw-gradient-to: #cbd5e1 !important;
-}
-
-/* Light theme: input group styling */
 .light-theme .border-slate-700 {
   border-color: var(--input-border) !important;
 }
 
-/* Light theme: subtle backdrop filters */
+/* Footer */
+.light-theme footer {
+  background-color: var(--footer-bg) !important;
+  border-color: rgba(168, 85, 247, 0.08) !important;
+}
+
+/* Dropdown menus — dark glass */
+.light-theme .bg-slate-800 {
+  background-color: rgba(20, 24, 50, 0.95) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(168, 85, 247, 0.08) !important;
+  border: 1px solid rgba(168, 85, 247, 0.1) !important;
+}
+
+/* Backdrop filters — stronger glass */
 .light-theme .backdrop-blur-xl {
-  backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
 }
 
 .light-theme .backdrop-blur-md {
-  backdrop-filter: blur(12px) saturate(180%) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
 }
 
-/* Light theme: text gradient fallbacks */
-.light-theme .bg-clip-text.text-transparent {
-  background-image: linear-gradient(to right, #0f172a, #475569) !important;
+/* Aurora decorative light blobs — visible and colorful */
+.light-theme .bg-neon-blue\/5 {
+  background-color: rgba(168, 85, 247, 0.06) !important;
+  opacity: 1 !important;
 }
 
-/* Light theme: dropdown menus */
-.light-theme .bg-slate-800 {
-  background-color: #ffffff !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+.light-theme .bg-neon-purple\/5 {
+  background-color: rgba(244, 114, 182, 0.06) !important;
+  opacity: 1 !important;
+}
+
+/* Neon green stays for badges */
+.light-theme .bg-neon-green {
+  background-color: #2dd4bf !important;
+}
+
+/* Yellow stars */
+.light-theme .text-yellow-400 {
+  color: #fbbf24 !important;
+}
+
+.light-theme .fill-yellow-400 {
+  fill: #fbbf24 !important;
+}
+
+/* After pseudo-element glow on nav links */
+.light-theme .after\:bg-neon-blue::after {
+  background-color: #a855f7 !important;
+}
+
+/* Keep red hearts */
+.light-theme .text-red-500 {
+  color: #f43f5e !important;
+}
+
+.light-theme .fill-red-500 {
+  fill: #f43f5e !important;
 }
 
 .light-theme .text-red-400 {
-  color: #ef4444 !important;
+  color: #fb7185 !important;
 }
 
-/* Light theme: cyber background effect */
-.light-theme .pointer-events-none .bg-neon-blue\/5,
-.light-theme .pointer-events-none .bg-neon-purple\/5 {
-  opacity: 0.15 !important;
-}
+/* Banner gradient glow colors shift to aurora palette */
+.light-theme .from-yellow-400 { --tw-gradient-from: #fbbf24 !important; }
+.light-theme .to-red-500 { --tw-gradient-to: #f472b6 !important; }
+.light-theme .from-green-400 { --tw-gradient-from: #2dd4bf !important; }
+.light-theme .to-emerald-600 { --tw-gradient-to: #60a5fa !important; }
 
 /* ========= Custom Scrollbar ========= */
 ::-webkit-scrollbar {
@@ -204,7 +285,11 @@ body {
   background-color: var(--primary-color);
 }
 
-/* ========= Cyberpunk Neon Enhancements (Dark only) ========= */
+.light-theme ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--aurora-purple);
+}
+
+/* ========= Cyberpunk Neon Enhancements (Dark) ========= */
 .dark-theme .neon-glow-text,
 :root:not(.light-theme) .neon-glow-text {
   text-shadow: 0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3), 0 0 40px rgba(0, 243, 255, 0.1);
@@ -215,11 +300,11 @@ body {
   box-shadow: 0 0 5px rgba(0, 243, 255, 0.3), inset 0 0 5px rgba(0, 243, 255, 0.1);
 }
 
-/* Smooth transitions for theme switching */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, box-shadow;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
+/* ========= Aurora Neon Enhancements (Light Theme) ========= */
+.light-theme .neon-glow-text {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(244, 114, 182, 0.3), 0 0 40px rgba(168, 85, 247, 0.1);
+}
+
+.light-theme .neon-border {
+  box-shadow: 0 0 5px rgba(168, 85, 247, 0.3), inset 0 0 5px rgba(244, 114, 182, 0.1);
 }

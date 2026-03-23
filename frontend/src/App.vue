@@ -45,7 +45,7 @@ onUnmounted(() => {
       :style="{
         background: appStore.theme === 'dark'
           ? `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(29, 78, 216, 0.15), transparent 40%)`
-          : `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(139, 92, 246, 0.06), transparent 40%)`
+          : `radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(168, 85, 247, 0.12), transparent 40%)`
       }"
     ></div>
 
