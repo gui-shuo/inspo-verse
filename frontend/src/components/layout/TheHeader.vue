@@ -8,7 +8,7 @@ import { useAppStore } from '@/stores/index'
 import { 
   User, LogOut, ChevronDown, Sun, Moon,
   Home, Compass, MessageSquare, Bot, Crown,
-  Gamepad2, Tv, Palette, Info, FileText, Headphones
+  Gamepad2, Tv, Palette, Info, FileText, Headphones, Settings
 } from 'lucide-vue-next'
 
 const { y } = useWindowScroll()
@@ -114,6 +114,10 @@ const dropdownNavItems = [
             <div class="p-2 space-y-1">
               <RouterLink to="/user" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
                 <User class="w-4 h-4" /> 个人中心
+              </RouterLink>
+
+              <RouterLink v-if="user?.isAdmin" to="/admin" class="flex items-center gap-2 px-3 py-2 text-sm text-neon-blue hover:bg-neon-blue/10 rounded-lg transition-colors font-medium">
+                <Settings class="w-4 h-4" /> 管理后台
               </RouterLink>
               
               <div class="my-1 border-t border-white/10"></div>
