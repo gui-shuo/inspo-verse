@@ -172,6 +172,18 @@ const router = createRouter({
           name: 'admin-settings',
           component: () => import('../views/admin/SystemSettings.vue'),
           meta: { title: '系统设置' }
+        },
+        {
+          path: 'tasks',
+          name: 'admin-tasks',
+          component: () => import('../views/admin/TasksManagement.vue'),
+          meta: { title: '任务管理' }
+        },
+        {
+          path: 'email-subscriptions',
+          name: 'admin-email',
+          component: () => import('../views/admin/EmailSubscriptions.vue'),
+          meta: { title: '邮件订阅' }
         }
       ]
     },

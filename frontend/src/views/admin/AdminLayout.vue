@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router'
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot, Film, Gamepad2, Wrench, Crown } from 'lucide-vue-next'
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Menu, ChevronRight, MessageSquare, Image, Bot, Film, Gamepad2, Wrench, Crown, ListTodo, Mail } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { checkAdminAccess } from '@/api/admin'
 
@@ -22,6 +22,8 @@ const menuItems = [
   { name: '游戏管理', icon: Gamepad2, path: '/admin/games' },
   { name: '工坊管理', icon: Wrench, path: '/admin/workshop' },
   { name: 'VIP管理', icon: Crown, path: '/admin/vip' },
+  { name: '任务管理', icon: ListTodo, path: '/admin/tasks' },
+  { name: '邮件订阅', icon: Mail, path: '/admin/email-subscriptions' },
   { name: '系统设置', icon: Settings, path: '/admin/settings' },
 ]
 
