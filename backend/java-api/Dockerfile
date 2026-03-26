@@ -39,7 +39,8 @@ EXPOSE 8080
 # JVM 调优参数：容器感知内存、GC 优化
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
-  "-XX:+UseG1GC", \
+  "-XX:MaxRAMPercentage=65.0", \
+  "-XX:+UseSerialGC", \
+  "-Xss512k", \
   "-Djava.security.egd=file:/dev/./urandom", \
   "-jar", "app.jar"]
