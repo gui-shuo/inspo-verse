@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Download, Star, Cpu, X, Share2, Heart, Plus, Upload, Search, Filter, Edit, Trash2, Loader2 } from 'lucide-vue-next'
+import { Download, Star, Cpu, X, Share2, Heart, Plus, Upload, Search, Edit, Trash2, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import type { WorkshopProject } from '@/api/workshop'
