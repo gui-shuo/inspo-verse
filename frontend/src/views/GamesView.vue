@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import GlitchText from '@/components/ui/GlitchText.vue'
-import { Star, Play, X, Calendar, User, Gamepad2, Heart, Plus, Edit3, Trash2, Search, Lock, Unlock, Clock, ChevronRight, Smartphone, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { Star, Play, X, Calendar, User, Gamepad2, Heart, Plus, Search, Lock, Unlock, Clock, Smartphone, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import {
   getGameList,
@@ -9,7 +9,6 @@ import {
   toggleGameFavorite,
   publishGame,
   updateGame,
-  deleteGame,
   uploadGameImage,
   createGamePurchase,
   queryGameOrderStatus,
@@ -209,33 +208,6 @@ const openPublishModal = () => {
   showPublishModal.value = true
 }
 
-const openEditModal = (game: GameItem) => {
-  editingGame.value = game
-  const parsedTags = (() => {
-    try {
-      const arr = JSON.parse(game.tags || '[]')
-      return Array.isArray(arr) ? arr.join(', ') : (game.tags || '')
-    } catch {
-      return game.tags || ''
-    }
-  })()
-  publishForm.value = {
-    title: game.title,
-    genre: game.genre,
-    description: game.description || '',
-    coverUrl: game.cover || '',
-    heroUrl: game.hero || '',
-    gameUrl: game.gameUrl || '',
-    tags: parsedTags,
-    developer: game.developer || '',
-    releaseDate: game.releaseDate || '',
-    isPaid: game.isPaid || 0,
-    priceCents: game.priceCents || 0,
-    trialMinutes: game.trialMinutes || 0,
-  }
-  showPublishModal.value = true
-}
-
 const handleImageUpload = async (e: Event, field: 'coverUrl' | 'heroUrl') => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
@@ -291,21 +263,6 @@ const handleSubmitPublish = async () => {
     toast.error(e?.message || '操作失败')
   } finally {
     publishLoading.value = false
-  }
-}
-
-const handleDelete = async (game: GameItem) => {
-  if (!confirm(`确认删除游戏「${game.title}」？`)) return
-  try {
-    const res = await deleteGame(game.id)
-    if (res.code === 0) {
-      toast.success('删除成功')
-      loadGames()
-    } else {
-      toast.error(res.message || '删除失败')
-    }
-  } catch {
-    toast.error('删除失败')
   }
 }
 
