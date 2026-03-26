@@ -2,7 +2,14 @@ package com.inspoverse.api.service;
 
 import com.inspoverse.api.common.BusinessException;
 import com.inspoverse.api.common.ErrorCode;
+import com.qcloud.cos.COSClient;
+import com.qcloud.cos.ClientConfig;
+import com.qcloud.cos.auth.BasicCOSCredentials;
+import com.qcloud.cos.auth.COSCredentials;
+import com.qcloud.cos.model.ObjectMetadata;
+import com.qcloud.cos.region.Region;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,8 +25,8 @@ import java.util.UUID;
 
 /**
  * 文件存储服务
- * 支持本地存储（开发模式）与阿里云OSS（生产模式）双模式
- * 通过 aliyun.oss.enabled 开关切换
+ * 支持本地存储（开发模式）与腾讯云COS（生产模式）双模式
+ * 通过 tencent.cos.enabled 开关切换
  */
 @Slf4j
 @Service
@@ -31,8 +38,20 @@ public class FileStorageService {
   private static final long MAX_AVATAR_SIZE = 5 * 1024 * 1024L;    // 5MB
   private static final long MAX_CREATION_SIZE = 50 * 1024 * 1024L; // 50MB
 
-  @Value("${aliyun.oss.enabled:false}")
-  private boolean ossEnabled;
+  @Value("${tencent.cos.enabled:false}")
+  private boolean cosEnabled;
+
+  @Value("${tencent.cos.secret-id:}")
+  private String cosSecretId;
+
+  @Value("${tencent.cos.secret-key:}")
+  private String cosSecretKey;
+
+  @Value("${tencent.cos.region:ap-beijing}")
+  private String cosRegion;
+
+  @Value("${tencent.cos.bucket:}")
+  private String cosBucket;
 
   @Value("${local.upload.path:/tmp/inspo-uploads}")
   private String localUploadPath;
@@ -40,34 +59,34 @@ public class FileStorageService {
   @Value("${local.base-url:http://localhost:8080/uploads}")
   private String localBaseUrl;
 
-  /**
-   * 启动后将 localUploadPath 转换为当前平台的绝对路径并创建目录
-   * 解决 Windows 下 /tmp/... 无盘符路径被 Tomcat 解析为相对路径的问题
-   */
+  private COSClient cosClient;
+
   @PostConstruct
   public void init() throws IOException {
-    // 如果是 Linux/Mac 的绝对路径，在 Windows 上将其转换为用户临时目录下的同名子目录
+    // 本地文件存储目录
     Path resolved = Paths.get(localUploadPath).toAbsolutePath();
     Files.createDirectories(resolved);
     localUploadPath = resolved.toString();
     log.info("本地文件存储目录: {}", localUploadPath);
+
+    // 初始化腾讯云 COS 客户端
+    if (cosEnabled && cosSecretId != null && !cosSecretId.isEmpty()) {
+      COSCredentials cred = new BasicCOSCredentials(cosSecretId, cosSecretKey);
+      ClientConfig clientConfig = new ClientConfig(new Region(cosRegion));
+      cosClient = new COSClient(cred, clientConfig);
+      log.info("腾讯云 COS 已启用: region={} bucket={}", cosRegion, cosBucket);
+    } else {
+      log.info("COS 未启用，使用本地文件存储");
+    }
   }
 
-  // OSS 配置（生产注入）
-  @Value("${aliyun.oss.endpoint:}")
-  private String ossEndpoint;
-  @Value("${aliyun.oss.access-key-id:}")
-  private String ossAccessKeyId;
-  @Value("${aliyun.oss.access-key-secret:}")
-  private String ossAccessKeySecret;
-  @Value("${aliyun.oss.bucket-name:inspo-verse}")
-  private String ossBucketName;
-  @Value("${aliyun.oss.domain:}")
-  private String ossDomain;
+  @PreDestroy
+  public void destroy() {
+    if (cosClient != null) {
+      cosClient.shutdown();
+    }
+  }
 
-  /**
-   * 上传头像
-   */
   public String uploadAvatar(Long userId, MultipartFile file) {
     validateImage(file);
     if (file.getSize() > MAX_AVATAR_SIZE) {
@@ -78,9 +97,6 @@ public class FileStorageService {
     return store(file, key);
   }
 
-  /**
-   * 上传帖子图片
-   */
   public String uploadPostImage(Long userId, MultipartFile file) {
     validateImage(file);
     if (file.getSize() > MAX_CREATION_SIZE) {
@@ -91,9 +107,6 @@ public class FileStorageService {
     return store(file, key);
   }
 
-  /**
-   * 上传创作文件
-   */
   public String uploadCreation(Long userId, MultipartFile file) {
     if (file.getSize() > MAX_CREATION_SIZE) {
       throw new BusinessException(ErrorCode.PARAM_ERROR, "文件不能超过50MB");
@@ -108,8 +121,8 @@ public class FileStorageService {
   }
 
   private String store(MultipartFile file, String key) {
-    if (ossEnabled) {
-      return storeToOss(file, key);
+    if (cosEnabled && cosClient != null) {
+      return storeToCos(file, key);
     }
     return storeToLocal(file, key);
   }
@@ -118,8 +131,6 @@ public class FileStorageService {
     try {
       Path targetPath = Paths.get(localUploadPath, key).toAbsolutePath();
       Files.createDirectories(targetPath.getParent());
-      // 使用 Files.copy 而非 transferTo，避免 Tomcat Part.write() 在 Windows 上
-      // 将无盘符路径（如 /tmp/...）解析为相对 work-dir 的路径导致 FileNotFoundException
       Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
       return localBaseUrl + "/" + key;
     } catch (IOException e) {
@@ -128,28 +139,19 @@ public class FileStorageService {
     }
   }
 
-  private String storeToOss(MultipartFile file, String key) {
-    // 阿里云 OSS 上传（生产环境）
-    // 需在 pom.xml 中添加: com.aliyun.oss:aliyun-sdk-oss:3.17.4
+  private String storeToCos(MultipartFile file, String key) {
     try {
-      // OSS SDK 动态调用，避免编译期依赖
-      Class<?> ossClientClass = Class.forName("com.aliyun.oss.OSSClientBuilder");
-      Object ossClient = ossClientClass.getMethod("build", String.class, String.class, String.class)
-          .invoke(ossClientClass.getDeclaredConstructor().newInstance(),
-              ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-
-      ossClientClass.getSuperclass().getMethod("putObject",
-          String.class, String.class, java.io.InputStream.class)
-          .invoke(ossClient, ossBucketName, key, file.getInputStream());
-
-      ossClientClass.getSuperclass().getMethod("shutdown").invoke(ossClient);
-
-      String domain = (ossDomain != null && !ossDomain.isEmpty())
-          ? ossDomain
-          : "https://" + ossBucketName + "." + ossEndpoint;
-      return domain + "/" + key;
+      ObjectMetadata metadata = new ObjectMetadata();
+      metadata.setContentLength(file.getSize());
+      if (file.getContentType() != null) {
+        metadata.setContentType(file.getContentType());
+      }
+      cosClient.putObject(cosBucket, key, file.getInputStream(), metadata);
+      String url = String.format("https://%s.cos.%s.myqcloud.com/%s", cosBucket, cosRegion, key);
+      log.debug("COS 上传成功: {}", url);
+      return url;
     } catch (Exception e) {
-      log.error("OSS上传失败，降级至本地存储: key={}", key, e);
+      log.error("COS 上传失败，降级至本地存储: key={}", key, e);
       return storeToLocal(file, key);
     }
   }

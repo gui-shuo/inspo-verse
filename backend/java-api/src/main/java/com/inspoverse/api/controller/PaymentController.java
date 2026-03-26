@@ -3,11 +3,13 @@ package com.inspoverse.api.controller;
 import com.inspoverse.api.common.ApiResponse;
 import com.inspoverse.api.entity.PaymentOrder;
 import com.inspoverse.api.service.PaymentService;
+import com.inspoverse.api.service.VipService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,16 +26,17 @@ import java.util.stream.Collectors;
  *   GET  /api/v1/payment/status/{orderNo}  查询支付状态
  *   POST /api/v1/payment/mock-confirm/{orderNo}  Mock 确认支付（仅 dev）
  * <p>
- * 回调接口（无需 JWT，由支付平台调用）：
- *   POST /api/v1/payment/notify/alipay
- *   POST /api/v1/payment/notify/wechat
+ * 回调接口（无需 JWT，由 Epay 支付平台调用）：
+ *   POST /api/v1/payment/notify/epay
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/payment")
 @RequiredArgsConstructor
 public class PaymentController {
 
   private final PaymentService paymentService;
+  private final VipService vipService;
 
   @Value("${app.payment.mock-mode:true}")
   private boolean mockMode;
@@ -88,13 +91,36 @@ public class PaymentController {
     return ApiResponse.success("支付成功");
   }
 
-  // ── 支付宝异步通知回调（生产使用，无需 JWT） ─────────────────────────────────
+  // ── Epay 异步通知回调（生产使用，无需 JWT，由 Epay 平台调用） ──────────────
+  @PostMapping("/notify/epay")
+  public String epayNotify(@RequestParam Map<String, String> params) {
+    log.info("[PaymentController] 收到 Epay 异步通知");
+    String result = paymentService.handleEpayNotify(params);
+
+    // 如果支付成功且是VIP订单，触发VIP激活
+    if ("success".equals(result)) {
+      String outTradeNo = params.get("out_trade_no");
+      if (outTradeNo != null) {
+        try {
+          PaymentOrder order = paymentService.findByOrderNo(outTradeNo);
+          if (order != null && "VIP".equals(order.getBizType()) && order.getBizRefId() != null) {
+            vipService.onPaymentSuccess(order.getBizRefId(), params.getOrDefault("type", "epay"));
+          }
+        } catch (Exception e) {
+          log.error("[PaymentController] VIP 激活处理异常: orderNo={}", outTradeNo, e);
+        }
+      }
+    }
+    return result;
+  }
+
+  // ── 支付宝异步通知回调（兼容保留） ─────────────────────────────────────────
   @PostMapping("/notify/alipay")
   public String alipayNotify(@RequestParam Map<String, String> params) {
     return paymentService.handleAlipayNotify(params);
   }
 
-  // ── 微信支付异步通知回调（生产使用，无需 JWT） ───────────────────────────────
+  // ── 微信支付异步通知回调（兼容保留） ───────────────────────────────────────
   @PostMapping("/notify/wechat")
   public String wechatNotify(@RequestBody String body) {
     return paymentService.handleWechatNotify(body);

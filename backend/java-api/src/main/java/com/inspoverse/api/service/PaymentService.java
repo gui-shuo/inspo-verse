@@ -29,8 +29,9 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * 支付服务
  * <p>
- * 默认运行在 mock 模式（app.payment.mock-mode=true），适用于开发和演示环境。
- * 生产环境需配置支付宝/微信支付 SDK 凭证，并将 mock-mode 关闭。
+ * 支持两种运行模式：
+ * - mock 模式（app.payment.mock-mode=true）：适用于开发和演示环境
+ * - 生产模式（app.payment.mock-mode=false）：接入第三方易支付（Epay）
  * </p>
  */
 @Slf4j
@@ -40,9 +41,16 @@ public class PaymentService {
 
   private final PaymentOrderMapper paymentOrderMapper;
   private final WalletService walletService;
+  private final EpayService epayService;
 
   @Value("${app.payment.mock-mode:true}")
   private boolean mockMode;
+
+  @Value("${app.payment.notify-base-url:http://localhost:8080}")
+  private String notifyBaseUrl;
+
+  @Value("${cors.allowed-origins:http://localhost:5173}")
+  private String frontendOrigin;
 
   /**
    * 充值套餐定义：packageId -> [points, amountCents]
@@ -55,9 +63,20 @@ public class PaymentService {
       "p5000", new long[]{5000, 18800}   // 5000 pts = ¥188
   );
 
-  // ── 微信绿 / 支付宝蓝 ──
-  private static final int COLOR_WECHAT = 0xFF07C160;
+  // ── 支付宝蓝 / 微信绿 ──
   private static final int COLOR_ALIPAY  = 0xFF1677FF;
+  private static final int COLOR_WECHAT  = 0xFF07C160;
+
+  /**
+   * 将前端支付方式映射到 Epay 支付类型
+   */
+  private String toEpayType(String payMethod) {
+    return switch (payMethod) {
+      case "ALIPAY" -> "alipay";
+      case "WECHAT" -> "wxpay";
+      default -> "alipay";
+    };
+  }
 
   /**
    * 创建支付订单
@@ -89,8 +108,7 @@ public class PaymentService {
     int points     = (int) pkg[0];
     BigDecimal amt = BigDecimal.valueOf(pkg[1], 2); // 分 → 元，scale=2
 
-    String orderNo = ("WECHAT".equals(payMethod) ? "WX" : "ALI")
-        + System.currentTimeMillis()
+    String orderNo = "EP" + System.currentTimeMillis()
         + ThreadLocalRandom.current().nextInt(1000, 9999);
 
     PaymentOrder order = new PaymentOrder();
@@ -104,35 +122,28 @@ public class PaymentService {
     order.setExpiredAt(LocalDateTime.now().plusMinutes(5));
 
     if (mockMode) {
-      // 开发模式：payUrl 存 mock 标识，QR 内容为订单号
       order.setPayUrl("MOCK:" + orderNo);
     } else {
-      // ─── TODO: 生产环境集成 ──────────────────────────────────────────────────
-      // 支付宝 Native 支付示例：
-      //   AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
-      //   model.setSubject("灵感点数充值 " + points + "pts");
-      //   model.setOutTradeNo(orderNo);
-      //   model.setTotalAmount(amt.toString());
-      //   AlipayTradePrecreateResponse resp = alipayClient.execute(request);
-      //   order.setPayUrl(resp.getQrCode());
-      //
-      // 微信支付 Native 示例：
-      //   NativePayRequest req = new NativePayRequest();
-      //   req.setDescription("灵感点数充值 " + points + "pts");
-      //   req.setOutTradeNo(orderNo);
-      //   ... 设置 amount / notifyUrl 等
-      //   NativePayResponse resp = wechatPayService.getNativePayApi().nativePay(req);
-      //   order.setPayUrl(resp.getCodeUrl());
-      // ────────────────────────────────────────────────────────────────────────
-      order.setPayUrl("MOCK:" + orderNo);
-      log.warn("[Payment] 生产 SDK 未集成，仍使用 mock 模式");
+      // 调用 Epay 生成支付链接
+      String notifyUrl = notifyBaseUrl.replaceAll("/+$", "") + "/api/v1/payment/notify/epay";
+      String returnUrl = frontendOrigin.replaceAll("/+$", "") + "/user?tab=wallet";
+
+      String payUrl = epayService.createPayUrl(
+          orderNo,
+          "灵感点数充值 " + points + "pts",
+          amt,
+          notifyUrl,
+          returnUrl,
+          toEpayType(payMethod)
+      );
+      order.setPayUrl(payUrl);
     }
 
     paymentOrderMapper.insert(order);
-    log.info("[Payment] 创建订单 orderNo={} userId={} method={} points={} amount={}",
-        orderNo, userId, payMethod, points, amt);
+    log.info("[Payment] 创建订单 orderNo={} userId={} method={} points={} amount={} mock={}",
+        orderNo, userId, payMethod, points, amt, mockMode);
 
-    // 生成二维码图片（不存 DB，仅在返回体中携带）
+    // 生成二维码图片（payUrl 渲染为 QR 码）
     order.setQrCodeDataUrl(generateQrCode(order.getPayUrl(), payMethod));
     return order;
   }
@@ -212,6 +223,14 @@ public class PaymentService {
   }
 
   /**
+   * 通过订单号查找支付订单（内部使用，无需校验用户）
+   */
+  public PaymentOrder findByOrderNo(String orderNo) {
+    return paymentOrderMapper.selectOne(new LambdaQueryWrapper<PaymentOrder>()
+        .eq(PaymentOrder::getOrderNo, orderNo));
+  }
+
+  /**
    * 为VIP订单创建支付单（复用支付能力）
    */
   @Transactional
@@ -219,8 +238,7 @@ public class PaymentService {
       String planName, int priceCents, String payMethod) {
 
     BigDecimal amt = BigDecimal.valueOf(priceCents, 2);
-    String orderNo = ("WECHAT".equals(payMethod) ? "WX" : "ALI")
-        + "VIP" + System.currentTimeMillis()
+    String orderNo = "EPVIP" + System.currentTimeMillis()
         + java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 9999);
 
     PaymentOrder order = new PaymentOrder();
@@ -238,30 +256,25 @@ public class PaymentService {
     if (mockMode) {
       order.setPayUrl("MOCK:" + orderNo);
     } else {
-      // ─── 生产环境 SDK 集成 ──────────────────────────────────────────
-      // 支付宝：
-      //   AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
-      //   model.setSubject("INSPO VIP - " + planName);
-      //   model.setOutTradeNo(orderNo);
-      //   model.setTotalAmount(amt.toString());
-      //   AlipayTradePrecreateResponse resp = alipayClient.execute(request);
-      //   order.setPayUrl(resp.getQrCode());
-      //
-      // 微信：
-      //   NativePayRequest req = new NativePayRequest();
-      //   req.setDescription("INSPO VIP - " + planName);
-      //   req.setOutTradeNo(orderNo);
-      //   ... amount / notifyUrl
-      //   NativePayResponse resp = wechatPayService.getNativePayApi().nativePay(req);
-      //   order.setPayUrl(resp.getCodeUrl());
-      // ────────────────────────────────────────────────────────────────
-      order.setPayUrl("MOCK:" + orderNo);
-      log.warn("[Payment] 生产 SDK 未集成，VIP订单仍使用 mock 模式");
+      // 调用 Epay 生成支付链接
+      String notifyUrl = notifyBaseUrl.replaceAll("/+$", "") + "/api/v1/payment/notify/epay";
+      String returnUrl = frontendOrigin.replaceAll("/+$", "") + "/vip";
+
+      String payUrl = epayService.createPayUrl(
+          orderNo,
+          "INSPO VIP - " + planName,
+          amt,
+          notifyUrl,
+          returnUrl,
+          toEpayType(payMethod)
+      );
+      order.setPayUrl(payUrl);
     }
 
     paymentOrderMapper.insert(order);
     order.setQrCodeDataUrl(generateQrCode(order.getPayUrl(), payMethod));
-    log.info("[Payment] 创建VIP支付订单 orderNo={} vipOrderNo={} amount={}", orderNo, vipOrderNo, amt);
+    log.info("[Payment] 创建VIP支付订单 orderNo={} vipOrderNo={} amount={} mock={}",
+        orderNo, vipOrderNo, amt, mockMode);
     return order;
   }
 
@@ -319,44 +332,90 @@ public class PaymentService {
   }
 
   /**
-   * 支付宝异步通知回调处理
+   * Epay 异步通知回调处理
+   * 验证签名 → 更新订单状态 → 触发充值/VIP激活
+   *
+   * @param params 通知参数
+   * @return "success" 表示处理成功
    */
   @Transactional
-  public String handleAlipayNotify(Map<String, String> params) {
-    // TODO: 生产环境
-    // 1. AlipaySignature.rsaCheckV1(...) 验证签名
-    // 2. 判断 trade_status == "TRADE_SUCCESS"
-    // 3. 查询 out_trade_no 对应订单
-    // 4. 调用 confirmPayment(orderNo) 或 vipService.onPaymentSuccess(...)
-    log.warn("[Payment] 支付宝回调收到，SDK 未集成，params={}", params);
+  public String handleEpayNotify(Map<String, String> params) {
+    log.info("[Payment] 收到 Epay 异步通知: {}", params);
 
-    String outTradeNo = params.get("out_trade_no");
+    // 1. 验证签名
+    String sign = params.get("sign");
+    if (sign == null || !epayService.verifyNotifySign(params, sign)) {
+      log.warn("[Payment] Epay 通知签名验证失败: {}", params);
+      return "fail";
+    }
+
+    // 2. 检查交易状态
     String tradeStatus = params.get("trade_status");
-    if ("TRADE_SUCCESS".equals(tradeStatus) && outTradeNo != null) {
-      PaymentOrder order = paymentOrderMapper.selectOne(
-          new LambdaQueryWrapper<PaymentOrder>().eq(PaymentOrder::getOrderNo, outTradeNo));
-      if (order != null && "PENDING".equals(order.getStatus())) {
-        confirmPayment(outTradeNo);
-        if ("VIP".equals(order.getBizType()) && order.getBizRefId() != null) {
-          // 延迟加载 VipService 避免循环依赖
-          log.info("[Payment] 支付宝VIP支付成功，需通知VipService: bizRef={}", order.getBizRefId());
-        }
+    if (!"TRADE_SUCCESS".equals(tradeStatus)) {
+      log.info("[Payment] Epay 通知交易未成功: status={}", tradeStatus);
+      return "success"; // 返回 success 防止重复通知
+    }
+
+    // 3. 查找订单
+    String outTradeNo = params.get("out_trade_no");
+    if (outTradeNo == null) {
+      log.warn("[Payment] Epay 通知缺少 out_trade_no");
+      return "fail";
+    }
+
+    PaymentOrder order = paymentOrderMapper.selectOne(
+        new LambdaQueryWrapper<PaymentOrder>().eq(PaymentOrder::getOrderNo, outTradeNo));
+    if (order == null) {
+      log.warn("[Payment] Epay 通知订单不存在: {}", outTradeNo);
+      return "fail";
+    }
+    if ("PAID".equals(order.getStatus())) {
+      return "success"; // 幂等
+    }
+    if (!"PENDING".equals(order.getStatus())) {
+      log.warn("[Payment] Epay 通知订单状态异常: orderNo={} status={}", outTradeNo, order.getStatus());
+      return "success";
+    }
+
+    // 4. 验证金额
+    String moneyStr = params.get("money");
+    if (moneyStr != null) {
+      BigDecimal notifyAmount = new BigDecimal(moneyStr);
+      if (order.getAmount().compareTo(notifyAmount) != 0) {
+        log.error("[Payment] Epay 通知金额不匹配: orderNo={} expected={} actual={}",
+            outTradeNo, order.getAmount(), notifyAmount);
+        return "fail";
       }
     }
+
+    // 5. 确认支付
+    confirmPayment(outTradeNo);
+
+    // 6. 如果是 VIP 订单，通知 VIP 服务（通过 ApplicationContext 延迟获取避免循环依赖）
+    if ("VIP".equals(order.getBizType()) && order.getBizRefId() != null) {
+      log.info("[Payment] Epay VIP支付成功，bizRef={}", order.getBizRefId());
+      // VIP 激活由 PaymentController 层面通过事件或直接调用 VipService 处理
+    }
+
+    log.info("[Payment] Epay 支付确认成功: orderNo={} tradeNo={}", outTradeNo, params.get("trade_no"));
     return "success";
   }
 
   /**
-   * 微信支付异步通知回调处理
+   * 支付宝异步通知回调处理（保留兼容，但标记已迁移至 Epay）
+   */
+  @Transactional
+  public String handleAlipayNotify(Map<String, String> params) {
+    log.warn("[Payment] 收到支付宝直接通知（已迁移至 Epay），转发处理: {}", params);
+    return handleEpayNotify(params);
+  }
+
+  /**
+   * 微信支付异步通知回调处理（保留兼容，但标记已迁移至 Epay）
    */
   @Transactional
   public String handleWechatNotify(String body) {
-    // TODO: 生产环境
-    // 1. 解密微信回调密文（AES-256-GCM）
-    // 2. 校验签名
-    // 3. 查询 out_trade_no 对应订单
-    // 4. 调用 confirmPayment(orderNo) 或 vipService.onPaymentSuccess(...)
-    log.warn("[Payment] 微信支付回调收到，SDK 未集成，body={}", body);
+    log.warn("[Payment] 收到微信直接通知（已迁移至 Epay），忽略: {}", body);
     return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
   }
 

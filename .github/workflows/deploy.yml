@@ -1,0 +1,290 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: 构建推送镜像并部署到云服务器
+    runs-on: ubuntu-latest
+
+    steps:
+      # ==================== 1. 代码检出 ====================
+      - name: 📥 Checkout 代码
+        uses: actions/checkout@v4
+
+      # ==================== 2. 生成镜像标签 ====================
+      - name: 🏷️ 生成镜像标签
+        run: |
+          echo "==> 当前构建信息:"
+          echo "    Commit SHA: ${GITHUB_SHA}"
+          echo "    Ref: ${GITHUB_REF}"
+          echo "    最新提交: $(git log --oneline -1)"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "IMAGE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "IMAGE_TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+
+      # ==================== 3. 设置 Docker Buildx ====================
+      - name: 🔧 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ==================== 4. 登录腾讯云 CCR ====================
+      - name: 🔐 登录腾讯云容器镜像服务
+        uses: docker/login-action@v3
+        with:
+          registry: hkccr.ccs.tencentyun.com
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+
+      # ==================== 5. 构建并推送 Java 后端镜像 ====================
+      - name: 🐳 构建并推送 Java 后端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend/java-api
+          push: true
+          platforms: linux/amd64
+          no-cache: true
+          tags: |
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:${{ env.IMAGE_TAG }}
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:latest
+
+      # ==================== 6. 构建并推送 Python AI 镜像 ====================
+      - name: 🐳 构建并推送 Python AI 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend/python-ai
+          push: true
+          platforms: linux/amd64
+          no-cache: true
+          tags: |
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:${{ env.IMAGE_TAG }}
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:latest
+
+      # ==================== 7. 构建并推送前端镜像 ====================
+      - name: 🐳 构建并推送前端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          platforms: linux/amd64
+          no-cache: true
+          tags: |
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:${{ env.IMAGE_TAG }}
+            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:latest
+
+      # ==================== 8. 上传 docker-compose 到服务器 ====================
+      - name: 📤 上传 docker-compose 到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "/www/wwwroot/Inspo-Verse"
+          overwrite: true
+
+      # ==================== 9. SSH 部署到服务器 ====================
+      - name: 🚀 拉取镜像并启动容器
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+          TCR_NAMESPACE: ${{ secrets.TCR_NAMESPACE }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: IMAGE_TAG,TCR_USERNAME,TCR_PASSWORD,TCR_NAMESPACE
+          script_stop: false
+          command_timeout: 60m
+          script: |
+            echo "============================================"
+            echo "开始部署 Inspo-Verse 项目"
+            echo "部署时间: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "镜像标签: ${IMAGE_TAG}"
+            echo "============================================"
+
+            cd /www/wwwroot/Inspo-Verse
+
+            # 检查 .env 文件
+            if [ ! -f .env ]; then
+              echo "ERROR: .env 文件不存在，请先在服务器上配置 .env" && exit 1
+            fi
+
+            # 更新 TCR_NAMESPACE（仅此变量来自 GitHub Secrets）
+            sed -i "s|^TCR_NAMESPACE=.*|TCR_NAMESPACE=${TCR_NAMESPACE}|" .env
+            chmod 600 .env
+            echo "==> .env 已更新"
+
+            # ── 前置安全检查：确认 nutriai 状态 ──
+            echo "==> 部署前 nutriai 项目状态:"
+            docker ps --filter name=nutriai --format "  {{.Names}}\t{{.Status}}" || true
+
+            # 登录腾讯云 CCR
+            echo "==> 登录腾讯云 CCR..."
+            echo "${TCR_PASSWORD}" | docker login hkccr.ccs.tencentyun.com -u "${TCR_USERNAME}" --password-stdin
+            if [ $? -ne 0 ]; then
+              echo "ERROR: 登录 CCR 失败" && exit 1
+            fi
+
+            # 检测 docker compose 命令
+            COMPOSE_CMD=""
+            docker compose version >/dev/null 2>&1 && COMPOSE_CMD="docker compose"
+            if [ -z "$COMPOSE_CMD" ]; then
+              docker-compose version >/dev/null 2>&1 && COMPOSE_CMD="docker-compose"
+            fi
+            if [ -z "$COMPOSE_CMD" ]; then
+              echo "==> 安装 docker-compose-plugin..."
+              apt-get update -y -qq && apt-get install -y -qq docker-compose-plugin
+              COMPOSE_CMD="docker compose"
+            fi
+            echo "==> 使用: $COMPOSE_CMD"
+
+            # 停止旧容器（-p inspo-verse 限定作用域，不影响 nutriai）
+            # 不使用 --remove-orphans，避免误删其他项目容器
+            echo "==> 停止 inspo-verse 旧容器..."
+            $COMPOSE_CMD -p inspo-verse -f docker-compose.prod.yml down 2>/dev/null || true
+
+            # 清理本项目旧镜像（仅 inspo-* 镜像）
+            echo "==> 清理 inspo 旧镜像..."
+            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-backend:latest" 2>/dev/null || true
+            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-ai:latest" 2>/dev/null || true
+            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-frontend:latest" 2>/dev/null || true
+
+            # 拉取后端镜像（重试 3 次）
+            echo "==> 拉取 Java 后端镜像..."
+            BACKEND_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-backend:latest"
+            PULL_OK=false
+            ATTEMPT=0
+            while [ "$ATTEMPT" -lt 3 ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              echo "    第 ${ATTEMPT} 次尝试..."
+              docker pull "$BACKEND_IMG" && PULL_OK=true && break
+              echo "    失败，等待 10 秒..." && sleep 10
+            done
+            if [ "$PULL_OK" != "true" ]; then
+              echo "ERROR: 后端镜像拉取失败" && exit 1
+            fi
+
+            # 拉取 AI 镜像（重试 3 次）
+            echo "==> 拉取 Python AI 镜像..."
+            AI_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-ai:latest"
+            PULL_OK=false
+            ATTEMPT=0
+            while [ "$ATTEMPT" -lt 3 ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              echo "    第 ${ATTEMPT} 次尝试..."
+              docker pull "$AI_IMG" && PULL_OK=true && break
+              echo "    失败，等待 10 秒..." && sleep 10
+            done
+            if [ "$PULL_OK" != "true" ]; then
+              echo "ERROR: AI 镜像拉取失败" && exit 1
+            fi
+
+            # 拉取前端镜像（重试 3 次）
+            echo "==> 拉取前端镜像..."
+            FRONTEND_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-frontend:latest"
+            PULL_OK=false
+            ATTEMPT=0
+            while [ "$ATTEMPT" -lt 3 ]; do
+              ATTEMPT=$((ATTEMPT + 1))
+              echo "    第 ${ATTEMPT} 次尝试..."
+              docker pull "$FRONTEND_IMG" && PULL_OK=true && break
+              echo "    失败，等待 10 秒..." && sleep 10
+            done
+            if [ "$PULL_OK" != "true" ]; then
+              echo "ERROR: 前端镜像拉取失败" && exit 1
+            fi
+
+            echo "==> 所有镜像拉取完成"
+
+            # 启动所有容器（-p inspo-verse 限定作用域，不使用 --remove-orphans）
+            echo "==> 启动 inspo-verse 容器..."
+            $COMPOSE_CMD -p inspo-verse -f docker-compose.prod.yml up -d --force-recreate
+            if [ $? -ne 0 ]; then
+              echo "ERROR: 容器启动失败" && exit 1
+            fi
+
+            echo ""
+            echo "==> Inspo-Verse 容器状态:"
+            $COMPOSE_CMD -p inspo-verse -f docker-compose.prod.yml ps
+
+            docker logout hkccr.ccs.tencentyun.com 2>/dev/null || true
+
+            # ── 部署后验证：nutriai 项目未受影响 ──
+            echo ""
+            echo "==> 验证 nutriai 项目未受影响:"
+            docker ps --filter name=nutriai --format "  {{.Names}}\t{{.Status}}" || true
+
+            echo ""
+            echo "============================================"
+            echo "部署完成！"
+            echo "  前端:       http://服务器IP:3001"
+            echo "  后端:       http://服务器IP:8081"
+            echo "  健康检查:   http://服务器IP:8081/actuator/health"
+            echo "  Redis:      独立 inspo-redis (db0)"
+            echo "  nutriai:    3000/8080 不受影响"
+            echo "============================================"
+
+      # ==================== 10. 安全清理旧镜像（仅清理 inspo 相关悬空镜像）====================
+      - name: 🧹 安全清理旧 Docker 镜像
+        uses: appleboy/ssh-action@v1.0.3
+        if: success()
+        env:
+          TCR_NAMESPACE: ${{ secrets.TCR_NAMESPACE }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: TCR_NAMESPACE
+          script: |
+            echo "==> 仅清理 inspo 项目的悬空镜像（不影响 nutriai）..."
+            # 只删除 inspo 相关的无标签悬空镜像
+            docker images --filter "dangling=true" --filter "reference=hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-*" -q | xargs -r docker rmi 2>/dev/null || true
+            echo ""
+            echo "Docker 磁盘使用:"
+            docker system df
+            echo ""
+            echo "所有运行中容器:"
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            echo "清理完成"
+
+      # ==================== 11. 部署结果摘要 ====================
+      - name: 📈 部署结果摘要
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "## ✅ 部署成功" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## ❌ 部署失败" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 项目 | 值 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 镜像标签 | \`${{ env.IMAGE_TAG }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 镜像仓库 | hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 部署路径 | /www/wwwroot/Inspo-Verse |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 部署时间 | $(date '+%Y-%m-%d %H:%M:%S') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 服务列表" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 服务 | 端口 | 镜像 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 前端 (Nginx + Vue) | 3001 | inspo-frontend |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Java 后端 (Spring Boot) | 8081 | inspo-backend |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Python AI (FastAPI) | 内部 9000 | inspo-ai |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Redis | 独立 inspo-redis (内部 6379) | redis:7-alpine |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> 同服务器 nutriai 项目使用 3000/8080 端口，两项目各自独立 Redis + 独立网络，通过 \`-p inspo-verse\` / \`-p nutriai\` 项目名隔离，互不干扰" >> "$GITHUB_STEP_SUMMARY"

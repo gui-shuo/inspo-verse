@@ -69,7 +69,9 @@ export function sendAIMessageStream(
   const abortController = new AbortController()
   const token = localStorage.getItem('token')
 
-  fetch('http://localhost:8080/api/v1/ai/chat/stream', {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+
+  fetch(`${apiBase}/ai/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

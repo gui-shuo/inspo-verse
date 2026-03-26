@@ -3,6 +3,7 @@ package com.inspoverse.api.controller;
 import com.inspoverse.api.common.ApiResponse;
 import com.inspoverse.api.entity.AIChatMessage;
 import com.inspoverse.api.entity.AIChatSession;
+import com.inspoverse.api.security.RequireVip;
 import com.inspoverse.api.service.AIService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -129,8 +130,9 @@ public class AIController {
   }
 
   /**
-   * 上传文件并提取内容
+   * 上传文件并提取内容（黄金会员多模态功能）
    */
+  @RequireVip(level = 2, message = "文件解析为黄金会员专属功能，请升级后使用")
   @PostMapping("/upload-file")
   public ApiResponse<Map<String, Object>> uploadFile(
       HttpServletRequest request,
@@ -155,8 +157,9 @@ public class AIController {
   }
 
   /**
-   * 语音转文字
+   * 语音转文字（黄金会员多模态功能）
    */
+  @RequireVip(level = 2, message = "语音识别为黄金会员专属功能，请升级后使用")
   @PostMapping("/voice-to-text")
   public ApiResponse<Map<String, Object>> voiceToText(
       HttpServletRequest request,

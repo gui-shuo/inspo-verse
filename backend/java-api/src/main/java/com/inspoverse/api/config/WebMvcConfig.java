@@ -1,6 +1,7 @@
 package com.inspoverse.api.config;
 
 import com.inspoverse.api.security.JwtAuthInterceptor;
+import com.inspoverse.api.security.VipAuthInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -11,12 +12,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
   private final JwtAuthInterceptor jwtAuthInterceptor;
+  private final VipAuthInterceptor vipAuthInterceptor;
 
   @Value("${local.upload.path:/tmp/inspo-uploads}")
   private String uploadPath;
 
-  public WebMvcConfig(JwtAuthInterceptor jwtAuthInterceptor) {
+  public WebMvcConfig(JwtAuthInterceptor jwtAuthInterceptor, VipAuthInterceptor vipAuthInterceptor) {
     this.jwtAuthInterceptor = jwtAuthInterceptor;
+    this.vipAuthInterceptor = vipAuthInterceptor;
   }
 
   @Override
@@ -46,6 +49,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
             // 论坛帖子/评论的 GET 读取在拦截器内处理为可选认证，
             // 避免把整个路径从POST写操作也一起排除进而（userId=null）导致数据库报错
         );
+
+    // VIP 权限拦截器（在 JWT 之后执行，检查 @RequireVip 注解）
+    registry.addInterceptor(vipAuthInterceptor)
+        .addPathPatterns("/api/**");
   }
 
   @Override
