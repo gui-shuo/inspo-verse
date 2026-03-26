@@ -40,13 +40,14 @@ jobs:
       - name: 🔧 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ==================== 4. 登录腾讯云 CCR ====================
+      # ==================== 4. 登录腾讯云 CCR（含重试） ====================
       - name: 🔐 登录腾讯云容器镜像服务
-        uses: docker/login-action@v3
+        uses: nick-fields/retry@v3
         with:
-          registry: hkccr.ccs.tencentyun.com
-          username: ${{ secrets.TCR_USERNAME }}
-          password: ${{ secrets.TCR_PASSWORD }}
+          timeout_minutes: 2
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: echo "${{ secrets.TCR_PASSWORD }}" | docker login hkccr.ccs.tencentyun.com -u "${{ secrets.TCR_USERNAME }}" --password-stdin
 
       # ==================== 5. 构建并推送 Java 后端镜像 ====================
       - name: 🐳 构建并推送 Java 后端镜像
@@ -133,11 +134,17 @@ jobs:
             echo "==> 部署前 nutriai 项目状态:"
             docker ps --filter name=nutriai --format "  {{.Names}}\t{{.Status}}" || true
 
-            # 登录腾讯云 CCR
+            # 登录腾讯云 CCR（重试 3 次）
             echo "==> 登录腾讯云 CCR..."
-            echo "${TCR_PASSWORD}" | docker login hkccr.ccs.tencentyun.com -u "${TCR_USERNAME}" --password-stdin
-            if [ $? -ne 0 ]; then
-              echo "ERROR: 登录 CCR 失败" && exit 1
+            LOGIN_OK=false
+            for i in 1 2 3; do
+              echo "    第 ${i} 次尝试..."
+              echo "${TCR_PASSWORD}" | docker login hkccr.ccs.tencentyun.com -u "${TCR_USERNAME}" --password-stdin && LOGIN_OK=true && break
+              echo "    登录失败，10 秒后重试..."
+              sleep 10
+            done
+            if [ "$LOGIN_OK" != "true" ]; then
+              echo "ERROR: 3 次登录 CCR 均失败" && exit 1
             fi
 
             # 检测 docker compose 命令
