@@ -40,14 +40,14 @@ jobs:
       - name: 🔧 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ==================== 4. 登录腾讯云 CCR（含重试） ====================
-      - name: 🔐 登录腾讯云容器镜像服务
+      # ==================== 4. 登录阿里云 ACR（含重试） ====================
+      - name: 🔐 登录阿里云容器镜像服务
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 2
           max_attempts: 3
           retry_wait_seconds: 10
-          command: echo "${{ secrets.TCR_PASSWORD }}" | docker login hkccr.ccs.tencentyun.com -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+          command: echo "${{ secrets.TCR_PASSWORD }}" | docker login crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com -u "${{ secrets.TCR_USERNAME }}" --password-stdin
 
       # ==================== 5. 构建并推送 Java 后端镜像 ====================
       - name: 🐳 构建并推送 Java 后端镜像
@@ -58,8 +58,8 @@ jobs:
           platforms: linux/amd64
           no-cache: true
           tags: |
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:${{ env.IMAGE_TAG }}
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:latest
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:${{ env.IMAGE_TAG }}
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-backend:latest
 
       # ==================== 6. 构建并推送 Python AI 镜像 ====================
       - name: 🐳 构建并推送 Python AI 镜像
@@ -70,8 +70,8 @@ jobs:
           platforms: linux/amd64
           no-cache: true
           tags: |
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:${{ env.IMAGE_TAG }}
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:latest
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:${{ env.IMAGE_TAG }}
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-ai:latest
 
       # ==================== 7. 构建并推送前端镜像 ====================
       - name: 🐳 构建并推送前端镜像
@@ -82,8 +82,8 @@ jobs:
           platforms: linux/amd64
           no-cache: true
           tags: |
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:${{ env.IMAGE_TAG }}
-            hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:latest
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:${{ env.IMAGE_TAG }}
+            crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }}/inspo-frontend:latest
 
       # ==================== 8. 上传 docker-compose 到服务器 ====================
       - name: 📤 上传 docker-compose 到服务器
@@ -134,17 +134,17 @@ jobs:
             echo "==> 部署前 nutriai 项目状态:"
             docker ps --filter name=nutriai --format "  {{.Names}}\t{{.Status}}" || true
 
-            # 登录腾讯云 CCR（重试 3 次）
-            echo "==> 登录腾讯云 CCR..."
+            # 登录阿里云 ACR（重试 3 次）
+            echo "==> 登录阿里云 ACR..."
             LOGIN_OK=false
             for i in 1 2 3; do
               echo "    第 ${i} 次尝试..."
-              echo "${TCR_PASSWORD}" | docker login hkccr.ccs.tencentyun.com -u "${TCR_USERNAME}" --password-stdin && LOGIN_OK=true && break
+              echo "${TCR_PASSWORD}" | docker login crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com -u "${TCR_USERNAME}" --password-stdin && LOGIN_OK=true && break
               echo "    登录失败，10 秒后重试..."
               sleep 10
             done
             if [ "$LOGIN_OK" != "true" ]; then
-              echo "ERROR: 3 次登录 CCR 均失败" && exit 1
+              echo "ERROR: 3 次登录 ACR 均失败" && exit 1
             fi
 
             # 检测 docker compose 命令
@@ -167,13 +167,13 @@ jobs:
 
             # 清理本项目旧镜像（仅 inspo-* 镜像）
             echo "==> 清理 inspo 旧镜像..."
-            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-backend:latest" 2>/dev/null || true
-            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-ai:latest" 2>/dev/null || true
-            docker rmi "hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-frontend:latest" 2>/dev/null || true
+            docker rmi "crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-backend:latest" 2>/dev/null || true
+            docker rmi "crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-ai:latest" 2>/dev/null || true
+            docker rmi "crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-frontend:latest" 2>/dev/null || true
 
             # 拉取后端镜像（重试 3 次）
             echo "==> 拉取 Java 后端镜像..."
-            BACKEND_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-backend:latest"
+            BACKEND_IMG="crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-backend:latest"
             PULL_OK=false
             ATTEMPT=0
             while [ "$ATTEMPT" -lt 3 ]; do
@@ -188,7 +188,7 @@ jobs:
 
             # 拉取 AI 镜像（重试 3 次）
             echo "==> 拉取 Python AI 镜像..."
-            AI_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-ai:latest"
+            AI_IMG="crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-ai:latest"
             PULL_OK=false
             ATTEMPT=0
             while [ "$ATTEMPT" -lt 3 ]; do
@@ -203,7 +203,7 @@ jobs:
 
             # 拉取前端镜像（重试 3 次）
             echo "==> 拉取前端镜像..."
-            FRONTEND_IMG="hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-frontend:latest"
+            FRONTEND_IMG="crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-frontend:latest"
             PULL_OK=false
             ATTEMPT=0
             while [ "$ATTEMPT" -lt 3 ]; do
@@ -229,7 +229,7 @@ jobs:
             echo "==> Inspo-Verse 容器状态:"
             $COMPOSE_CMD -p inspo-verse -f docker-compose.prod.yml ps
 
-            docker logout hkccr.ccs.tencentyun.com 2>/dev/null || true
+            docker logout crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com 2>/dev/null || true
 
             # ── 部署后验证：nutriai 项目未受影响 ──
             echo ""
@@ -260,7 +260,7 @@ jobs:
           script: |
             echo "==> 仅清理 inspo 项目的悬空镜像（不影响 nutriai）..."
             # 只删除 inspo 相关的无标签悬空镜像
-            docker images --filter "dangling=true" --filter "reference=hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-*" -q | xargs -r docker rmi 2>/dev/null || true
+            docker images --filter "dangling=true" --filter "reference=crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-*" -q | xargs -r docker rmi 2>/dev/null || true
             echo ""
             echo "Docker 磁盘使用:"
             docker system df
@@ -282,7 +282,7 @@ jobs:
           echo "| 项目 | 值 |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| 镜像标签 | \`${{ env.IMAGE_TAG }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| 镜像仓库 | hkccr.ccs.tencentyun.com/${{ secrets.TCR_NAMESPACE }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 镜像仓库 | crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${{ secrets.TCR_NAMESPACE }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| 部署路径 | /www/wwwroot/Inspo-Verse |" >> "$GITHUB_STEP_SUMMARY"
           echo "| 部署时间 | $(date '+%Y-%m-%d %H:%M:%S') |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

@@ -13,7 +13,7 @@ name: inspo-verse
 services:
   # ==================== 前端 (Nginx + Vue SPA) ====================
   inspo-frontend:
-    image: hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-frontend:latest
+    image: crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-frontend:latest
     container_name: inspo-frontend
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
 
   # ==================== Java 后端 (Spring Boot) ====================
   inspo-backend:
-    image: hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-backend:latest
+    image: crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-backend:latest
     container_name: inspo-backend
     restart: unless-stopped
     ports:
@@ -97,7 +97,7 @@ services:
 
   # ==================== Python AI 服务 (FastAPI) ====================
   inspo-ai:
-    image: hkccr.ccs.tencentyun.com/${TCR_NAMESPACE}/inspo-ai:latest
+    image: crpi-j4jyart51tb8fixi.cn-hongkong.personal.cr.aliyuncs.com/${TCR_NAMESPACE}/inspo-ai:latest
     container_name: inspo-ai
     restart: unless-stopped
     environment:
