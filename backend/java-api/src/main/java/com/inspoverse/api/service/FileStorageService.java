@@ -63,20 +63,18 @@ public class FileStorageService {
 
   @PostConstruct
   public void init() throws IOException {
-    // 本地文件存储目录
-    Path resolved = Paths.get(localUploadPath).toAbsolutePath();
-    Files.createDirectories(resolved);
-    localUploadPath = resolved.toString();
-    log.info("本地文件存储目录: {}", localUploadPath);
-
-    // 初始化腾讯云 COS 客户端
     if (cosEnabled && cosSecretId != null && !cosSecretId.isEmpty()) {
+      // 生产模式：仅使用腾讯云 COS
       COSCredentials cred = new BasicCOSCredentials(cosSecretId, cosSecretKey);
       ClientConfig clientConfig = new ClientConfig(new Region(cosRegion));
       cosClient = new COSClient(cred, clientConfig);
       log.info("腾讯云 COS 已启用: region={} bucket={}", cosRegion, cosBucket);
     } else {
-      log.info("COS 未启用，使用本地文件存储");
+      // 开发模式：使用本地文件存储
+      Path resolved = Paths.get(localUploadPath).toAbsolutePath();
+      Files.createDirectories(resolved);
+      localUploadPath = resolved.toString();
+      log.info("COS 未启用，使用本地文件存储: {}", localUploadPath);
     }
   }
 
@@ -151,8 +149,8 @@ public class FileStorageService {
       log.debug("COS 上传成功: {}", url);
       return url;
     } catch (Exception e) {
-      log.error("COS 上传失败，降级至本地存储: key={}", key, e);
-      return storeToLocal(file, key);
+      log.error("COS 上传失败: key={}", key, e);
+      throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件上传失败，请稍后重试");
     }
   }
 

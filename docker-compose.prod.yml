@@ -88,8 +88,6 @@ services:
       - PAYMENT_NOTIFY_BASE_URL=${PAYMENT_NOTIFY_BASE_URL}
       # --- MyBatis 日志（生产关闭 SQL 打印）---
       - MYBATIS_LOG_IMPL=org.apache.ibatis.logging.nologging.NoLoggingImpl
-    volumes:
-      - backend-uploads:/tmp/inspo-uploads
     networks:
       - inspo-net
     deploy:
@@ -151,8 +149,6 @@ services:
 # ==================== 数据卷 ====================
 volumes:
   redis-data:
-    driver: local
-  backend-uploads:
     driver: local
   ai-uploads:
     driver: local
